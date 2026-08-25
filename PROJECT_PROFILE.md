@@ -9,10 +9,10 @@
 
 ## Current accepted baseline
 - Accepted branch: `main`
-- Accepted HEAD SHA: `62321562fa0dddc0981d8776f65324a6356a1ab5`
+- Accepted HEAD SHA: `6023eb88b0d799ebda19cf6a603e3a0d840be1d4`
 - Accepted date: 2026-08-25
-- Current phase/milestone: R0 clean foundation
-- Last accepted PR / CI run: none; repository initialized directly
+- Current phase/milestone: R1 execution preparation
+- Last accepted PR / CI run: PR #3 (`R0: establish clean-slate Street Concept Designer foundation`); workflow-integrity CI not yet established
 
 ## Technology stack
 - Languages: not locked; TypeScript and Rust are candidate implementation languages
@@ -23,23 +23,24 @@
 ## Standard commands
 ### Install/bootstrap
 ```text
-Not established in R0.
+Not established before R1 implementation.
 ```
 ### Fast validation
 ```text
-Not established in R0.
+Not established before R1 implementation.
 ```
 ### Full validation
 ```text
-Not established in R0.
+Engineering workflow integrity: python <workflow-checkout>/scripts/setup_project.py validate .
+R1-specific commands will be established by the chosen kernel implementation.
 ```
 ### Build/package
 ```text
-Not established in R0.
+Not established before R1 implementation.
 ```
 ### Local run
 ```text
-Not established in R0.
+Not established before R1 implementation.
 ```
 
 ## Architecture / invariants
@@ -74,12 +75,13 @@ Changes must not alter the following unless explicitly approved:
 ## Validation matrix
 | Gate | Command / Method | Required |
 |---|---|---|
+| Engineering workflow integrity | upstream `setup_project.py validate .` | Yes before first coding acceptance |
 | Unit / targeted | to be established by R1 | Yes for implementation |
 | Integration / regression | to be established | Yes when applicable |
 | Browser/UI | later product-shell stages | When applicable |
 | Build/package/runtime | after toolchain scaffold | Yes |
 | Real-data/reference | golden engineering workflows/fixtures | Yes where applicable |
-| CI | GitHub Actions to be established | Yes after scaffold |
+| CI | GitHub Actions workflow-integrity gate; implementation CI to be added in R1 | Yes |
 
 ## Execution characteristics
 - Typical task ambiguity: high during product/kernel foundation; should be reduced in ChatGPT before Codex execution
@@ -89,18 +91,19 @@ Changes must not alter the following unless explicitly approved:
 - Preferred local execution constraints: isolated branch/worktree; one writer per tightly coupled task; fresh-context review for critical changes
 
 ## Git / release policy
-- Branch naming: task-scoped branch such as `codex/r1-*` or `chatgpt/r0-*`
+- Branch naming: task-scoped branch such as `codex/r1-*` or `chatgpt/r1-*`
 - Commit policy: small coherent commits; no unrelated cleanup
 - PR policy: material changes through PR with explicit success gates/evidence
 - Merge policy: merge only after required gates and review pass; prefer squash when history is exploratory
 - Release policy: not established; no release until qualified product milestone
 
 ## Current known limitations / risks
-- No production code or executable toolchain exists yet.
+- No production code or executable application toolchain exists yet.
 - Kernel language/geometry libraries are not locked.
 - Current UI/rendering stack is candidate architecture only.
 - Thai standards source register is not yet complete enough to encode engineering values.
 - R1 must prove alignment, stationing, variable-width components, topology, determinism, and shared 2D/3D derivation before production editor work.
+- Shared workflow files are installed and versioned, but upstream installer validation must still run against a checked-out target repository/CI environment.
 
 ## Current next objective
-- Complete and review R0 foundation, then execute a bounded R1 geometry/semantic kernel spike with objective qualification evidence.
+- Prepare and execute R1 as bounded packets, starting with alignment + station-based cross-section/lane lifecycle; keep junction/topology and shared 2D/3D proof as subsequent packets under Issue #2.
