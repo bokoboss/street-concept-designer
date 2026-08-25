@@ -20,7 +20,8 @@ Junction topology/surfaces, product UI, maps, production 2D/3D rendering, scenar
 
 ## Authoritative baseline
 - Repository: `bokoboss/street-concept-designer`
-- Accepted main SHA: `f41de61db74ac4837cb18f09cf7c3e74686d9450`
+- Accepted branch: `main`
+- Exact base SHA: resolve and record at R1A branch/worktree creation before the first implementation change; include it in the Issue/PR/Evidence Package. Do not rely on a self-referential SHA stored in `main` documentation.
 - Issue: #2
 - Parent spec: `specs/R1_GEOMETRY_SPIKE.md`
 - Project facts: `PROJECT_PROFILE.md`
@@ -47,7 +48,7 @@ Start with the lowest-cost coding model expected to reliably execute this alread
 Use one writer on a dedicated branch/worktree such as `codex/r1a-alignment-lanes`. Read-only reviewers may inspect numerical invariants, dependency/WASM compatibility, or tests. Do not run multiple writers on the kernel surface.
 
 ### A0 — Baseline and workflow
-Run the installed Engineering Development Workflow validation, confirm accepted main SHA/Issue #2, and record toolchain versions.
+Before any implementation change, resolve current accepted `main` to an exact SHA, create the isolated branch/worktree from that SHA, record it in the execution evidence, run the installed Engineering Development Workflow validation, confirm Issue #2, and record toolchain versions.
 
 ### A1 — Kernel feasibility
 Create the minimum native+WASM proof needed to test the candidate Rust kernel path. Stop with evidence if a required dependency/toolchain creates a material target, licensing, or maintenance problem.
@@ -67,7 +68,7 @@ Run all gates, scrutinize the diff, fix findings, and prepare an Evidence Packag
 ## Success gates
 | Gate | Criterion | Required evidence |
 |---|---|---|
-| A-G0 | Workflow install validates | upstream installer validation output |
+| A-G0 | Exact execution base SHA recorded and workflow install validates | branch/worktree evidence + upstream installer validation output |
 | A-G1 | Native+WASM feasibility established or explicitly blocked | build/test evidence |
 | A-G2 | Alignment APIs pass canonical fixtures | unit/golden tests |
 | A-G3 | Projection/station/tangent/normal/sampling stable on adversarial cases | tests |
@@ -87,4 +88,4 @@ Stop rather than broaden scope if native+WASM feasibility fails materially, the 
 R1A is done only when A-G0 through A-G11 pass, or a mandatory gate is explicitly BLOCKED with evidence and an architecture decision request. Do not start R1B automatically.
 
 ## Final report
-Include changed modules, exact commands/results, native/WASM status, fixture inventory, tests/property checks/benchmarks, tolerance policy/assumptions, commit/PR/CI identifiers, limitations, and recommendation to proceed/remediate/escalate.
+Include execution base SHA, changed modules, exact commands/results, native/WASM status, fixture inventory, tests/property checks/benchmarks, tolerance policy/assumptions, commit/PR/CI identifiers, limitations, and recommendation to proceed/remediate/escalate.
