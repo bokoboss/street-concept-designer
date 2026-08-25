@@ -1,0 +1,33 @@
+name: Engineering Workflow Integrity
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-engineering-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out target repository
+        uses: actions/checkout@v4
+
+      - name: Check out shared Engineering Development Workflow
+        uses: actions/checkout@v4
+        with:
+          repository: bokoboss/engineering-development-workflow
+          ref: main
+          path: .engineering-workflow-source
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate installed workflow scaffold
+        run: python .engineering-workflow-source/scripts/setup_project.py validate .
