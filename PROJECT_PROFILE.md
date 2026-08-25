@@ -9,10 +9,10 @@
 
 ## Current accepted baseline
 - Accepted branch: `main`
-- Accepted HEAD SHA: `949da9145fa4da714ff9fc1357dfedb23b174284`
+- Accepted HEAD SHA: `f41de61db74ac4837cb18f09cf7c3e74686d9450`
 - Accepted date: 2026-08-25
-- Current phase/milestone: pre-Codex R1 architecture/execution preparation
-- Last accepted PR / CI run: PR #5 (`Add product, UX, map, standards, and asset research baseline`); Engineering Workflow Integrity run `32825313913` PASS
+- Current phase/milestone: R1A ready for bounded execution
+- Last accepted PR / CI run: PR #6 (`Complete pre-Codex architecture and R1 packetization`); Engineering Workflow Integrity run `32831150681` PASS
 
 ## Technology stack
 - Languages: not locked; TypeScript and Rust are candidate implementation languages
@@ -110,4 +110,4 @@ Changes must not alter the following unless explicitly approved:
 - Product-file physical container, persistence mechanism, and final renderer DTOs remain intentionally unimplemented; policy boundaries are documented first.
 
 ## Current next objective
-- Finish pre-Codex architecture/execution preparation, then execute R1A only: kernel feasibility + alignment/stationing + cross-section/lane lifecycle. R1B junction/topology and R1C shared-render proof remain separately gated and must not start automatically.
+- Execute R1A only: kernel feasibility + alignment/stationing + cross-section/lane lifecycle under `specs/execution/R1A_ALIGNMENT_LANE_LIFECYCLE.md`. R1B junction/topology and R1C shared-render proof remain separately gated and must not start automatically.

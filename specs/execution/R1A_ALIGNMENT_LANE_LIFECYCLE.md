@@ -20,7 +20,7 @@ Junction topology/surfaces, product UI, maps, production 2D/3D rendering, scenar
 
 ## Authoritative baseline
 - Repository: `bokoboss/street-concept-designer`
-- Accepted main SHA: `949da9145fa4da714ff9fc1357dfedb23b174284`
+- Accepted main SHA: `f41de61db74ac4837cb18f09cf7c3e74686d9450`
 - Issue: #2
 - Parent spec: `specs/R1_GEOMETRY_SPIKE.md`
 - Project facts: `PROJECT_PROFILE.md`
