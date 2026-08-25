@@ -9,10 +9,10 @@
 
 ## Current accepted baseline
 - Accepted branch: `main`
-- Accepted HEAD SHA: `6023eb88b0d799ebda19cf6a603e3a0d840be1d4`
+- Accepted HEAD SHA: `949da9145fa4da714ff9fc1357dfedb23b174284`
 - Accepted date: 2026-08-25
-- Current phase/milestone: R1 execution preparation
-- Last accepted PR / CI run: PR #3 (`R0: establish clean-slate Street Concept Designer foundation`); workflow-integrity CI not yet established
+- Current phase/milestone: pre-Codex R1 architecture/execution preparation
+- Last accepted PR / CI run: PR #5 (`Add product, UX, map, standards, and asset research baseline`); Engineering Workflow Integrity run `32825313913` PASS
 
 ## Technology stack
 - Languages: not locked; TypeScript and Rust are candidate implementation languages
@@ -52,6 +52,8 @@ Not established before R1 implementation.
 - Engineering state and presentation state are separate.
 - Standards-sensitive behavior must have versioned provenance.
 - AI actions must translate to typed previewable/undoable commands.
+- Manual UI, AI, imports, and automation converge on one validated semantic transaction layer.
+- Basemap/reference sources are separate from canonical engineering geometry and provider capabilities/terms govern tracing/cache/export.
 - Equal semantic input must produce deterministic equivalent output.
 
 ## Protected behavior
@@ -61,13 +63,15 @@ Changes must not alter the following unless explicitly approved:
 - single canonical model for 2D/3D;
 - explicit topology creation;
 - standards provenance and non-fabrication policy;
-- deterministic command/undo model requirement.
+- deterministic command/undo model requirement;
+- renderer/provider separation from project engineering truth.
 
 ## Important paths
 - Source: not created yet
 - Tests: not created yet
 - Documentation: `docs/`
 - Specifications: `specs/`
+- Execution contracts: `specs/execution/`
 - Development workflow templates: `docs/development/templates/`
 - Generated output: not established
 - Local-only / sensitive / licensed data: not established; must never be committed without explicit policy
@@ -75,23 +79,23 @@ Changes must not alter the following unless explicitly approved:
 ## Validation matrix
 | Gate | Command / Method | Required |
 |---|---|---|
-| Engineering workflow integrity | upstream `setup_project.py validate .` | Yes before first coding acceptance |
+| Engineering workflow integrity | upstream `setup_project.py validate .` + GitHub Actions | Yes |
 | Unit / targeted | to be established by R1 | Yes for implementation |
 | Integration / regression | to be established | Yes when applicable |
 | Browser/UI | later product-shell stages | When applicable |
 | Build/package/runtime | after toolchain scaffold | Yes |
 | Real-data/reference | golden engineering workflows/fixtures | Yes where applicable |
-| CI | GitHub Actions workflow-integrity gate; implementation CI to be added in R1 | Yes |
+| CI | workflow-integrity gate established; implementation CI to be added by R1 | Yes |
 
 ## Execution characteristics
-- Typical task ambiguity: high during product/kernel foundation; should be reduced in ChatGPT before Codex execution
-- High-risk areas: geometry robustness, topology, coordinate precision, project schema, standards claims, undo/redo semantics, 2D/3D divergence
-- Modules safe to parallelize: independent research/review; later isolated asset/reference work
+- Typical task ambiguity: high during product/kernel foundation; reduce in ChatGPT before Codex execution
+- High-risk areas: geometry robustness, topology, coordinate precision/tolerance, project schema, standards claims, command/undo semantics, 2D/3D divergence, basemap/provider rights, asset provenance
+- Modules safe to parallelize: independent research/read-only review; later isolated asset/reference work
 - Modules tightly coupled / single-owner: canonical semantic model, geometry kernel, command transaction model
 - Preferred local execution constraints: isolated branch/worktree; one writer per tightly coupled task; fresh-context review for critical changes
 
 ## Git / release policy
-- Branch naming: task-scoped branch such as `codex/r1-*` or `chatgpt/r1-*`
+- Branch naming: task-scoped branch such as `codex/r1-*` or `chatgpt/*`
 - Commit policy: small coherent commits; no unrelated cleanup
 - PR policy: material changes through PR with explicit success gates/evidence
 - Merge policy: merge only after required gates and review pass; prefer squash when history is exploratory
@@ -101,9 +105,9 @@ Changes must not alter the following unless explicitly approved:
 - No production code or executable application toolchain exists yet.
 - Kernel language/geometry libraries are not locked.
 - Current UI/rendering stack is candidate architecture only.
-- Thai standards source register is not yet complete enough to encode engineering values.
-- R1 must prove alignment, stationing, variable-width components, topology, determinism, and shared 2D/3D derivation before production editor work.
-- Shared workflow files are installed and versioned, but upstream installer validation must still run against a checked-out target repository/CI environment.
+- Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
+- R1 must prove alignment, stationing, variable-width components, topology, determinism, precision policy, and shared 2D/3D derivation before production editor work.
+- Product-file physical container, persistence mechanism, and final renderer DTOs remain intentionally unimplemented; policy boundaries are documented first.
 
 ## Current next objective
-- Prepare and execute R1 as bounded packets, starting with alignment + station-based cross-section/lane lifecycle; keep junction/topology and shared 2D/3D proof as subsequent packets under Issue #2.
+- Finish pre-Codex architecture/execution preparation, then execute R1A only: kernel feasibility + alignment/stationing + cross-section/lane lifecycle. R1B junction/topology and R1C shared-render proof remain separately gated and must not start automatically.
