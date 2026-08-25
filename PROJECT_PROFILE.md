@@ -9,10 +9,10 @@
 
 ## Current accepted baseline
 - Accepted branch: `main`
-- Accepted HEAD SHA: `f41de61db74ac4837cb18f09cf7c3e74686d9450`
+- Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
 - Accepted date: 2026-08-25
 - Current phase/milestone: R1A ready for bounded execution
-- Last accepted PR / CI run: PR #6 (`Complete pre-Codex architecture and R1 packetization`); Engineering Workflow Integrity run `32831150681` PASS
+- Last accepted milestone PR / CI: PR #7 (`Refresh accepted R1A execution baseline`); Engineering Workflow Integrity run `32831310190` PASS
 
 ## Technology stack
 - Languages: not locked; TypeScript and Rust are candidate implementation languages
@@ -100,6 +100,7 @@ Changes must not alter the following unless explicitly approved:
 - PR policy: material changes through PR with explicit success gates/evidence
 - Merge policy: merge only after required gates and review pass; prefer squash when history is exploratory
 - Release policy: not established; no release until qualified product milestone
+- Baseline pinning policy: execution tasks must record the exact `main` base SHA at branch/worktree creation in the task/PR/evidence package; do not attempt to make an in-repository profile file self-reference its own HEAD SHA
 
 ## Current known limitations / risks
 - No production code or executable application toolchain exists yet.
@@ -110,4 +111,4 @@ Changes must not alter the following unless explicitly approved:
 - Product-file physical container, persistence mechanism, and final renderer DTOs remain intentionally unimplemented; policy boundaries are documented first.
 
 ## Current next objective
-- Execute R1A only: kernel feasibility + alignment/stationing + cross-section/lane lifecycle under `specs/execution/R1A_ALIGNMENT_LANE_LIFECYCLE.md`. R1B junction/topology and R1C shared-render proof remain separately gated and must not start automatically.
+- Execute R1A only: kernel feasibility + alignment/stationing + cross-section/lane lifecycle under `specs/execution/R1A_ALIGNMENT_LANE_LIFECYCLE.md`. At task start, branch from current accepted `main` and record the exact base SHA in the execution evidence. R1B junction/topology and R1C shared-render proof remain separately gated and must not start automatically.
