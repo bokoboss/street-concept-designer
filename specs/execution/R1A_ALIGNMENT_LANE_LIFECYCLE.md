@@ -12,18 +12,20 @@ Prove the first bounded slice of Issue #2: kernel feasibility, reference alignme
 - implement piecewise-linear station-based width profiles;
 - prove constant width, widening/narrowing, lane add/drop, and a right-turn pocket using the same general lane lifecycle;
 - add canonical/adversarial fixtures, deterministic tests, property-based coverage where useful, and preliminary benchmarks;
-- document dependency/WASM/native risks.
+- document dependency/WASM/native risks;
+- use `docs/architecture/GEOMETRY_PRECISION_TOLERANCE_POLICY.md` as the required numerical-policy baseline rather than inventing local epsilon constants.
 
 ## Out of scope
 Junction topology/surfaces, product UI, maps, production 2D/3D rendering, scenarios, assets, Thai numeric standards, AI runtime, persistence/export, terrain, simulation, swept path, and roundabouts.
 
 ## Authoritative baseline
 - Repository: `bokoboss/street-concept-designer`
-- Accepted main SHA: `6023eb88b0d799ebda19cf6a603e3a0d840be1d4`
+- Accepted main SHA: `949da9145fa4da714ff9fc1357dfedb23b174284`
 - Issue: #2
 - Parent spec: `specs/R1_GEOMETRY_SPIKE.md`
 - Project facts: `PROJECT_PROFILE.md`
 - Constitution: `ENGINEERING_CONSTITUTION.md`
+- Numerical policy: `docs/architecture/GEOMETRY_PRECISION_TOLERANCE_POLICY.md`
 
 ## Execution routing
 Start with the lowest-cost coding model expected to reliably execute this already-bounded packet, using high reasoning effort. Escalate only after a concrete failing fixture is reproduced and diagnosed as a fundamental numerical, geometry, WASM/toolchain, or cross-cutting architecture problem.
@@ -38,7 +40,7 @@ Start with the lowest-cost coding model expected to reliably execute this alread
 - right-turn pocket uses the general lane lifecycle/profile mechanism, not a dedicated overlay polygon;
 - equal semantic input produces deterministic equivalent output;
 - no dependency on `road-concept-builder`;
-- tolerances must be named, documented, and tested;
+- tolerances must be named, centralized/documented, and tested; do not fix failing geometry by scattered epsilon inflation;
 - abstractions must allow a future spiral/clothoid without implementing it now.
 
 ## Execution strategy
@@ -75,13 +77,14 @@ Run all gates, scrutinize the diff, fix findings, and prepare an Evidence Packag
 | A-G7 | Large-coordinate fixture remains finite in canonical data | test |
 | A-G8 | Property/fuzz-style invariant strategy covers applicable risks | evidence |
 | A-G9 | Preliminary benchmarks recorded; no obvious architecture blocker | benchmark notes |
-| A-G10 | No junction/UI/map/asset scope creep | diff scrutiny |
+| A-G10 | Numerical tolerances are named/tested and no scattered magic-epsilon workaround is introduced | policy/diff scrutiny |
+| A-G11 | No junction/UI/map/asset scope creep | diff scrutiny |
 
 ## Stop conditions
-Stop rather than broaden scope if native+WASM feasibility fails materially, the alignment model requires a semantic redesign, determinism needs an R0 architecture change, lane lifecycle cannot represent required cases cleanly, or passing a gate would require junction/product-UI work.
+Stop rather than broaden scope if native+WASM feasibility fails materially, the alignment model requires a semantic redesign, determinism needs an accepted architecture change, lane lifecycle cannot represent required cases cleanly, or passing a gate would require junction/product-UI work.
 
 ## Definition of done
-R1A is done only when A-G0 through A-G10 pass, or a mandatory gate is explicitly BLOCKED with evidence and an architecture decision request. Do not start R1B automatically.
+R1A is done only when A-G0 through A-G11 pass, or a mandatory gate is explicitly BLOCKED with evidence and an architecture decision request. Do not start R1B automatically.
 
 ## Final report
-Include changed modules, exact commands/results, native/WASM status, fixture inventory, tests/property checks/benchmarks, tolerances and assumptions, commit/PR/CI identifiers, limitations, and recommendation to proceed/remediate/escalate.
+Include changed modules, exact commands/results, native/WASM status, fixture inventory, tests/property checks/benchmarks, tolerance policy/assumptions, commit/PR/CI identifiers, limitations, and recommendation to proceed/remediate/escalate.
