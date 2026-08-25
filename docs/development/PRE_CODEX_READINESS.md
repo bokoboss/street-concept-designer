@@ -1,6 +1,6 @@
 # Pre-Codex Readiness Gate
 
-Status target: R1A execution readiness after this architecture pack is reviewed/merged.
+Status target: R1A execution readiness after the architecture/policy baseline is accepted.
 
 ## Why this gate exists
 
@@ -72,7 +72,7 @@ No worker may automatically roll from one packet into the next.
 
 ## Intentionally unresolved — Codex/R1 evidence must answer
 
-These are not missing requirements; they are experimental architecture questions:
+These are experimental architecture questions, not missing requirements:
 - Rust native+WASM kernel feasibility;
 - exact geometry dependencies/libraries;
 - whether Rust remains preferable to TypeScript after evidence;
@@ -101,15 +101,27 @@ R1A must not decide/implement:
 - roundabout/U-turn special module;
 - simulation/swept path.
 
+## Baseline pinning rule
+
+Do **not** try to store `main`'s own current HEAD SHA inside a file on `main`; changing that file changes HEAD and creates endless SHA churn.
+
+Instead, at each bounded execution start:
+1. resolve current accepted `main` to an exact SHA;
+2. create the task branch/worktree from that SHA;
+3. record that exact base SHA in the Issue/task note, PR, and Evidence Package;
+4. never rebase/change the execution base silently during qualification.
+
+`PROJECT_PROFILE.md` records accepted branch/milestone policy; task evidence records immutable execution SHA.
+
 ## R1A start checklist
 
 Before invoking Codex:
-- [ ] architecture-pack PR merged to `main`;
-- [ ] `PROJECT_PROFILE.md` accepted SHA updated to merged baseline;
+- [ ] architecture/policy baseline merged to `main`;
+- [ ] baseline-pinning policy current in `PROJECT_PROFILE.md` and R1A contract;
 - [ ] Engineering Workflow Integrity CI passing;
 - [ ] Issue #2 remains open and correctly scoped;
-- [ ] `R1A_ALIGNMENT_LANE_LIFECYCLE.md` references current accepted main SHA;
-- [ ] dedicated branch/worktree will be used;
+- [ ] current accepted `main` exact SHA resolved and recorded before first R1A implementation change;
+- [ ] dedicated branch/worktree created from that exact SHA;
 - [ ] writer model/effort chosen through shared routing policy;
 - [ ] completion evidence template available;
 - [ ] no parallel writer owns the same kernel files.
@@ -142,7 +154,7 @@ Codex stops rather than broadens scope when:
 
 ## Readiness decision
 
-When this architecture pack is merged and the checklist above is current, the control-plane assessment is:
+Once the baseline-pinning fix is merged and the R1A start checklist is satisfied at execution creation:
 
 **R1A: READY FOR BOUNDED CODEX EXECUTION**
 
