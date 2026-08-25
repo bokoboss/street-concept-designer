@@ -17,6 +17,12 @@ This document defines boundaries, not a final technology lock.
 
 Dependencies should point inward toward semantics/kernel rather than renderer-specific state.
 
+Related architecture policies:
+- `docs/architecture/COMMAND_TRANSACTION_MODEL.md`
+- `docs/architecture/MAP_BASEMAP_POLICY.md`
+- `docs/assets/ASSET_SYSTEM.md`
+- `docs/assets/ASSET_PRODUCTION_PIPELINE.md`
+
 ## Candidate product stack
 
 Desktop/UI candidate:
@@ -31,7 +37,8 @@ Desktop/UI candidate:
 - Three.js
 
 Map candidate:
-- MapLibre GL JS with provider abstraction
+- MapLibre GL JS with provider abstraction governed by `MAP_BASEMAP_POLICY.md`.
+- MapLibre is a renderer candidate, not a license to use any specific basemap/provider.
 
 Geometry-kernel candidates to test:
 - Rust compiled native/WASM, or
@@ -52,4 +59,12 @@ Do not lock the kernel language until R1 evidence exists.
 
 ## Command layer
 
-Every meaningful edit is a typed command with validation, preview where appropriate, apply, inverse/undo, and serialization/audit metadata as needed. AI uses the same command API as manual UI.
+Every meaningful edit is a typed semantic command/transaction with validation, preview where appropriate, apply, undo/redo semantics, and audit/provenance metadata as needed. Manual UI, imports, automation, and AI must converge on this same command path. See `COMMAND_TRANSACTION_MODEL.md`.
+
+## Map/reference layer
+
+Map imagery/data is reference context only. Renderer and provider are separate abstractions. Provider capabilities/terms must govern digitization, caching, offline use, export, and attribution without altering canonical engineering geometry. See `MAP_BASEMAP_POLICY.md`.
+
+## Asset layer
+
+Engineering markings and many roadside assets should be procedural/semantic; complex presentation props may use normalized 2D/3D representations with explicit provenance. The user's normal workflow must not depend on manually authoring SVG or 3D models.
