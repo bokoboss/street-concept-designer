@@ -27,10 +27,15 @@ Before implementation, read:
 - the current file under `specs/`
 
 Read the relevant specialized policy before touching these surfaces:
+- geometry/numerics: `docs/architecture/GEOMETRY_PRECISION_TOLERANCE_POLICY.md`;
 - editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md`;
+- selection/hit-test/snapping: `docs/ux/SELECTION_SNAPPING_MODEL.md`;
+- 2D/3D rendering: `docs/architecture/RENDERER_CONTRACT.md`;
+- persistence/project schema: `docs/architecture/PROJECT_FILE_SCHEMA.md`;
 - maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md`;
-- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `ASSET_PRODUCTION_PIPELINE.md`, and `ASSET_VISUAL_STYLE.md`;
-- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md` and the applicable source register.
+- export: `docs/architecture/EXPORT_POLICY.md`;
+- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `ASSET_PRODUCTION_PIPELINE.md`, `ASSET_VISUAL_STYLE.md`, and `ASSET_METADATA_SCHEMA.md`;
+- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `STANDARD_PROFILE_SCHEMA.md`, and the applicable source register.
 
 ## Clean-slate prohibition
 
@@ -62,6 +67,9 @@ Use the shared workflow model-routing policy. Prefer the cheapest model that can
 - Do not silently connect intersecting roads.
 - Do not create separate 2D and 3D semantic calculations.
 - Do not hard-code unverified Thai standards.
+- Do not scatter magic geometry tolerances or inflate epsilon values to hide failing cases.
+- Do not persist renderer caches as canonical project state.
+- Do not let snap-to-geometry silently create topology.
 - Do not start polished UI or a large asset library before the semantic/geometry kernel is qualified.
 - Do not add cloud, auth, collaboration, simulation, BIM, grading, or detailed CAD features unless an explicit later specification authorizes them.
 
