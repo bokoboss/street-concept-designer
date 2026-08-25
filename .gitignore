@@ -1,0 +1,34 @@
+# Node / frontend
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# Rust / Tauri
+target/
+**/target/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local artifacts / scratch
+.local-data/
+artifacts/
+coverage-artifacts/
+*.log
+
+# Generated asset intermediates
+assets/generated/
+assets/cache/
+
+# Keep source-controlled manifests and metadata
+!assets/**/manifest.*
