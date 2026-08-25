@@ -26,7 +26,11 @@ Before implementation, read:
 - `docs/architecture/TECHNICAL_ARCHITECTURE.md`
 - the current file under `specs/`
 
-Read asset/standards documents when those surfaces are involved.
+Read the relevant specialized policy before touching these surfaces:
+- editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md`;
+- maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md`;
+- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `ASSET_PRODUCTION_PIPELINE.md`, and `ASSET_VISUAL_STYLE.md`;
+- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md` and the applicable source register.
 
 ## Clean-slate prohibition
 
