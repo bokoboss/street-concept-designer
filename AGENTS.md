@@ -14,21 +14,21 @@ Before coding-agent work, use `PROJECT_PROFILE.md` to establish the verified pro
 
 ## Mandatory context
 
-Before implementation, read:
+Before implementation, read only the common core plus the active execution contract:
 
 - `PROJECT_PROFILE.md`
 - `ENGINEERING_CONSTITUTION.md`
 - `docs/development/ENGINEERING_WORKFLOW.md`
 - `docs/product/PRODUCT_VISION.md`
-- `docs/product/DECISION_REGISTER.md`
-- `docs/product/GOLDEN_WORKFLOWS.md`
-- `docs/product/PRODUCT_ROADMAP.md`
-- `docs/ux/UX_ARCHITECTURE.md`
 - `docs/architecture/SEMANTIC_MODEL.md`
 - `docs/architecture/TECHNICAL_ARCHITECTURE.md`
-- the current file under `specs/`
+- the active execution/specification file under `specs/`
 
-Read the relevant specialized policy before touching these surfaces:
+Do **not** load every product/research/UX document by default. Read specialized context only when the task touches that surface or the active execution contract directs it.
+
+Relevant specialized context:
+- locked/evidence-gated/deferred decisions: `docs/product/DECISION_REGISTER.md`;
+- product stage/scope questions: `docs/product/PRODUCT_ROADMAP.md` and `FEATURE_SCOPE_MATRIX.md`;
 - geometry/numerics: `docs/architecture/GEOMETRY_PRECISION_TOLERANCE_POLICY.md`;
 - editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md` and `AI_COMMAND_CATALOG.md`;
 - selection/hit-test/snapping: `docs/ux/SELECTION_SNAPPING_MODEL.md`;
@@ -37,10 +37,13 @@ Read the relevant specialized policy before touching these surfaces:
 - maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md` and `REFERENCE_DATA_QUALITY_MODEL.md`;
 - export: `docs/architecture/EXPORT_POLICY.md`;
 - assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `ASSET_PRODUCTION_PIPELINE.md`, `ASSET_VISUAL_STYLE.md`, `ASSET_METADATA_SCHEMA.md`, and `STARTER_ASSET_CATALOG.md`;
-- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `STANDARD_PROFILE_SCHEMA.md`, and the applicable source register;
+- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `STANDARD_PROFILE_SCHEMA.md`, the applicable source register, and extraction backlog;
 - product dependencies/licenses: `docs/development/DEPENDENCY_LICENSE_REGISTER.md`;
-- production UX/editor flow: `docs/ux/LOW_FIDELITY_WORKSPACE_SPEC.md`, `INTERACTION_FLOWS.md`, and `UX_REVIEW_GATE.md`;
-- human acceptance: `docs/uat/GOLDEN_UAT_CASES.md`.
+- production UX/editor flow: `docs/ux/UX_ARCHITECTURE.md`, `LOW_FIDELITY_WORKSPACE_SPEC.md`, `INTERACTION_FLOWS.md`, and `UX_REVIEW_GATE.md`;
+- human acceptance: `docs/uat/GOLDEN_UAT_CASES.md`;
+- requirement traceability: `docs/product/REQUIREMENTS_TRACEABILITY.md`;
+- road configurations/generators: `docs/product/STARTER_ROAD_CONFIGURATION_CATALOG.md`;
+- terminology ambiguities: `docs/product/DOMAIN_GLOSSARY.md`.
 
 ## Decision authority
 
