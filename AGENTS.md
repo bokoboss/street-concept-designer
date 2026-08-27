@@ -20,7 +20,9 @@ Before implementation, read:
 - `ENGINEERING_CONSTITUTION.md`
 - `docs/development/ENGINEERING_WORKFLOW.md`
 - `docs/product/PRODUCT_VISION.md`
+- `docs/product/DECISION_REGISTER.md`
 - `docs/product/GOLDEN_WORKFLOWS.md`
+- `docs/product/PRODUCT_ROADMAP.md`
 - `docs/ux/UX_ARCHITECTURE.md`
 - `docs/architecture/SEMANTIC_MODEL.md`
 - `docs/architecture/TECHNICAL_ARCHITECTURE.md`
@@ -28,14 +30,28 @@ Before implementation, read:
 
 Read the relevant specialized policy before touching these surfaces:
 - geometry/numerics: `docs/architecture/GEOMETRY_PRECISION_TOLERANCE_POLICY.md`;
-- editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md`;
+- editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md` and `AI_COMMAND_CATALOG.md`;
 - selection/hit-test/snapping: `docs/ux/SELECTION_SNAPPING_MODEL.md`;
 - 2D/3D rendering: `docs/architecture/RENDERER_CONTRACT.md`;
 - persistence/project schema: `docs/architecture/PROJECT_FILE_SCHEMA.md`;
-- maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md`;
+- maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md` and `REFERENCE_DATA_QUALITY_MODEL.md`;
 - export: `docs/architecture/EXPORT_POLICY.md`;
-- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `ASSET_PRODUCTION_PIPELINE.md`, `ASSET_VISUAL_STYLE.md`, and `ASSET_METADATA_SCHEMA.md`;
-- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `STANDARD_PROFILE_SCHEMA.md`, and the applicable source register.
+- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `ASSET_PRODUCTION_PIPELINE.md`, `ASSET_VISUAL_STYLE.md`, `ASSET_METADATA_SCHEMA.md`, and `STARTER_ASSET_CATALOG.md`;
+- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `STANDARD_PROFILE_SCHEMA.md`, and the applicable source register;
+- product dependencies/licenses: `docs/development/DEPENDENCY_LICENSE_REGISTER.md`;
+- production UX/editor flow: `docs/ux/LOW_FIDELITY_WORKSPACE_SPEC.md`, `INTERACTION_FLOWS.md`, and `UX_REVIEW_GATE.md`;
+- human acceptance: `docs/uat/GOLDEN_UAT_CASES.md`.
+
+## Decision authority
+
+`docs/product/DECISION_REGISTER.md` distinguishes locked product/architecture decisions from evidence-gated hypotheses and deferred features.
+
+A coding agent must not change a **LOCKED** decision merely because another implementation is easier. If evidence contradicts a locked decision:
+1. stop;
+2. produce the smallest failing case/evidence;
+3. propose alternatives;
+4. request architecture review;
+5. do not silently redefine the product.
 
 ## Clean-slate prohibition
 
@@ -70,8 +86,23 @@ Use the shared workflow model-routing policy. Prefer the cheapest model that can
 - Do not scatter magic geometry tolerances or inflate epsilon values to hide failing cases.
 - Do not persist renderer caches as canonical project state.
 - Do not let snap-to-geometry silently create topology.
+- Do not assign normal 2D/3D asset-production work to the user.
+- Do not introduce a dependency without recording exact package/version/license/evidence at adoption.
+- Do not let visual realism imply survey accuracy or standards compliance.
 - Do not start polished UI or a large asset library before the semantic/geometry kernel is qualified.
 - Do not add cloud, auth, collaboration, simulation, BIM, grading, or detailed CAD features unless an explicit later specification authorizes them.
+
+## UX and UAT evidence
+
+A screenshot that looks plausible is not acceptance.
+
+When a milestone exposes a relevant user flow:
+- use the applicable `GOLDEN_UAT_CASES.md` case;
+- review the flow against `UX_REVIEW_GATE.md`;
+- verify direct/numeric editing consistency;
+- verify scenario/reference/mode clarity;
+- verify errors and undo/recovery where in scope;
+- record objective evidence.
 
 ## Tests and evidence
 
