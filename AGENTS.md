@@ -28,18 +28,18 @@ Do **not** load every product/research/UX document by default. Read specialized 
 
 Relevant specialized context:
 - locked/evidence-gated/deferred decisions: `docs/product/DECISION_REGISTER.md`;
-- product stage/scope questions: `docs/product/PRODUCT_ROADMAP.md` and `FEATURE_SCOPE_MATRIX.md`;
+- product stage/scope questions: `docs/product/PRODUCT_ROADMAP.md` and `docs/product/FEATURE_SCOPE_MATRIX.md`;
 - geometry/numerics: `docs/architecture/GEOMETRY_PRECISION_TOLERANCE_POLICY.md`;
-- editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md` and `AI_COMMAND_CATALOG.md`;
+- editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md` and `docs/architecture/AI_COMMAND_CATALOG.md`;
 - selection/hit-test/snapping: `docs/ux/SELECTION_SNAPPING_MODEL.md`;
 - 2D/3D rendering: `docs/architecture/RENDERER_CONTRACT.md`;
 - persistence/project schema: `docs/architecture/PROJECT_FILE_SCHEMA.md`;
-- maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md` and `REFERENCE_DATA_QUALITY_MODEL.md`;
+- maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md` and `docs/architecture/REFERENCE_DATA_QUALITY_MODEL.md`;
 - export: `docs/architecture/EXPORT_POLICY.md`;
-- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `ASSET_PRODUCTION_PIPELINE.md`, `ASSET_VISUAL_STYLE.md`, `ASSET_METADATA_SCHEMA.md`, and `STARTER_ASSET_CATALOG.md`;
-- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `STANDARD_PROFILE_SCHEMA.md`, the applicable source register, and extraction backlog;
+- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `docs/assets/ASSET_PRODUCTION_PIPELINE.md`, `docs/assets/ASSET_VISUAL_STYLE.md`, `docs/assets/ASSET_METADATA_SCHEMA.md`, and `docs/assets/STARTER_ASSET_CATALOG.md`;
+- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `docs/standards/STANDARD_PROFILE_SCHEMA.md`, `docs/standards/THAILAND_SOURCE_REGISTER.md`, and `docs/standards/THAILAND_EXTRACTION_BACKLOG.md`;
 - product dependencies/licenses: `docs/development/DEPENDENCY_LICENSE_REGISTER.md`;
-- production UX/editor flow: `docs/ux/UX_ARCHITECTURE.md`, `LOW_FIDELITY_WORKSPACE_SPEC.md`, `INTERACTION_FLOWS.md`, and `UX_REVIEW_GATE.md`;
+- production UX/editor flow: `docs/ux/UX_ARCHITECTURE.md`, `docs/ux/LOW_FIDELITY_WORKSPACE_SPEC.md`, `docs/ux/INTERACTION_FLOWS.md`, and `docs/ux/UX_REVIEW_GATE.md`;
 - human acceptance: `docs/uat/GOLDEN_UAT_CASES.md`;
 - requirement traceability: `docs/product/REQUIREMENTS_TRACEABILITY.md`;
 - road configurations/generators: `docs/product/STARTER_ROAD_CONFIGURATION_CATALOG.md`;
