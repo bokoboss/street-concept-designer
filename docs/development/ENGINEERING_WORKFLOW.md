@@ -3,7 +3,7 @@
 This project adopts the shared Engineering Development Workflow.
 
 - Upstream: https://github.com/bokoboss/engineering-development-workflow
-- Installed workflow version: 1.4.1
+- Installed workflow version: 1.5.0
 - Local project authority: `PROJECT_PROFILE.md` and project-specific `AGENTS.md`
 
 ## Operating rule
@@ -19,8 +19,9 @@ Default control loop:
 For coding-agent work, prepare a bounded execution contract, choose the cheapest model that
 can reliably finish the task, prefer Luna for well-specified execution, diagnose failures
 before escalation, and require objective evidence before claiming completion. Focused skills
-remain upstream; ChatGPT/control-plane work should apply the relevant current skill and pass
-its conclusions into the local contract, gates, and coding-agent prompt.
+and context policy remain upstream; ChatGPT/control-plane work should apply relevant research,
+scrutiny, context, and independent-review rules and pass their conclusions into the local
+contract, gates, and coding-agent prompt.
 
 ## Local reusable templates
 
