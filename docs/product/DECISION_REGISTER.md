@@ -24,6 +24,12 @@ Statuses:
 | Product = rapid street/access/intersection concept designer | LOCKED | closes gap between simple graphics and heavy CAD |
 | Standalone desktop product direction | LOCKED | removes Illustrator/CAD dependency and supports professional local work |
 | Windows-first | LOCKED | initial user environment; architecture may remain cross-platform capable |
+| Per-user Windows installer without Administrator rights | LOCKED | normal office deployment should not require machine-wide installation |
+| No-install Portable Windows distribution | LOCKED PRODUCT REQUIREMENT | supports office PCs where installation is restricted; exact packaging must be qualified |
+| Offline installer distribution | LOCKED PRODUCT REQUIREMENT | site/office machines may not have setup-time internet access |
+| Portable Offline with bundled WebView2 Fixed Version | EVIDENCE_GATED/PREFERRED | strong fit for constrained machines, but package/runtime servicing must be proven |
+| End user installs Node/Rust/Python/build tools | REJECTED_INITIAL | development toolchain must not leak into runtime deployment |
+| Portable mode depends on localhost server/Windows service | REJECTED_INITIAL | conflicts with no-install office-friendly deployment |
 | Traffic Engineer / Transport Planner primary user | LOCKED | drives workflows and acceptance |
 | Concept design, not detailed Civil CAD | LOCKED | prevents scope explosion |
 | Core editing works offline | LOCKED | online maps are optional reference services |
