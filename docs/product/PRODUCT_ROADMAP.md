@@ -302,6 +302,10 @@ Expected work:
 - selection/snapping polish;
 - visual regression;
 - Windows packaging;
+- per-user/no-admin installer qualification;
+- Portable ZIP qualification on clean standard-user office PCs;
+- offline installer and Portable Offline/WebView2 strategy qualification;
+- code-signing/SmartScreen release path;
 - dependency/license notice generation;
 - asset LOD/instancing tuning;
 - schema migration tests;
@@ -324,7 +328,10 @@ Product outcome:
 qualified Windows-first standalone release candidate.
 
 Required qualification:
-- clean-machine install;
+- clean-machine per-user install without elevation;
+- clean-machine Portable launch without installation;
+- offline installer qualification;
+- Portable Offline runtime strategy qualified or explicitly deferred with evidence;
 - signed/validated package strategy;
 - open/save/migrate representative projects;
 - no external editor dependency;
