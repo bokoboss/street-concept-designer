@@ -14,28 +14,48 @@ Before coding-agent work, use `PROJECT_PROFILE.md` to establish the verified pro
 
 ## Mandatory context
 
-Before implementation, read:
+Before implementation, read only the common core plus the active execution contract:
 
 - `PROJECT_PROFILE.md`
 - `ENGINEERING_CONSTITUTION.md`
 - `docs/development/ENGINEERING_WORKFLOW.md`
 - `docs/product/PRODUCT_VISION.md`
-- `docs/product/GOLDEN_WORKFLOWS.md`
-- `docs/ux/UX_ARCHITECTURE.md`
 - `docs/architecture/SEMANTIC_MODEL.md`
 - `docs/architecture/TECHNICAL_ARCHITECTURE.md`
-- the current file under `specs/`
+- the active execution/specification file under `specs/`
 
-Read the relevant specialized policy before touching these surfaces:
+Do **not** load every product/research/UX document by default. Read specialized context only when the task touches that surface or the active execution contract directs it.
+
+Relevant specialized context:
+- locked/evidence-gated/deferred decisions: `docs/product/DECISION_REGISTER.md`;
+- product stage/scope questions: `docs/product/PRODUCT_ROADMAP.md` and `docs/product/FEATURE_SCOPE_MATRIX.md`;
 - geometry/numerics: `docs/architecture/GEOMETRY_PRECISION_TOLERANCE_POLICY.md`;
-- editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md`;
+- editor/undo/AI/import mutations: `docs/architecture/COMMAND_TRANSACTION_MODEL.md` and `docs/architecture/AI_COMMAND_CATALOG.md`;
 - selection/hit-test/snapping: `docs/ux/SELECTION_SNAPPING_MODEL.md`;
 - 2D/3D rendering: `docs/architecture/RENDERER_CONTRACT.md`;
 - persistence/project schema: `docs/architecture/PROJECT_FILE_SCHEMA.md`;
-- maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md`;
+- maps/geospatial/reference layers: `docs/architecture/MAP_BASEMAP_POLICY.md` and `docs/architecture/REFERENCE_DATA_QUALITY_MODEL.md`;
 - export: `docs/architecture/EXPORT_POLICY.md`;
-- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `ASSET_PRODUCTION_PIPELINE.md`, `ASSET_VISUAL_STYLE.md`, and `ASSET_METADATA_SCHEMA.md`;
-- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `STANDARD_PROFILE_SCHEMA.md`, and the applicable source register.
+- assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `docs/assets/ASSET_PRODUCTION_PIPELINE.md`, `docs/assets/ASSET_VISUAL_STYLE.md`, `docs/assets/ASSET_METADATA_SCHEMA.md`, and `docs/assets/STARTER_ASSET_CATALOG.md`;
+- standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `docs/standards/STANDARD_PROFILE_SCHEMA.md`, `docs/standards/THAILAND_SOURCE_REGISTER.md`, and `docs/standards/THAILAND_EXTRACTION_BACKLOG.md`;
+- product dependencies/licenses: `docs/development/DEPENDENCY_LICENSE_REGISTER.md`;
+- Windows packaging/portable/office-PC deployment: `docs/architecture/WINDOWS_DISTRIBUTION_POLICY.md`;
+- production UX/editor flow: `docs/ux/UX_ARCHITECTURE.md`, `docs/ux/LOW_FIDELITY_WORKSPACE_SPEC.md`, `docs/ux/INTERACTION_FLOWS.md`, and `docs/ux/UX_REVIEW_GATE.md`;
+- human acceptance: `docs/uat/GOLDEN_UAT_CASES.md`;
+- requirement traceability: `docs/product/REQUIREMENTS_TRACEABILITY.md`;
+- road configurations/generators: `docs/product/STARTER_ROAD_CONFIGURATION_CATALOG.md`;
+- terminology ambiguities: `docs/product/DOMAIN_GLOSSARY.md`.
+
+## Decision authority
+
+`docs/product/DECISION_REGISTER.md` distinguishes locked product/architecture decisions from evidence-gated hypotheses and deferred features.
+
+A coding agent must not change a **LOCKED** decision merely because another implementation is easier. If evidence contradicts a locked decision:
+1. stop;
+2. produce the smallest failing case/evidence;
+3. propose alternatives;
+4. request architecture review;
+5. do not silently redefine the product.
 
 ## Clean-slate prohibition
 
@@ -70,8 +90,23 @@ Use the shared workflow model-routing policy. Prefer the cheapest model that can
 - Do not scatter magic geometry tolerances or inflate epsilon values to hide failing cases.
 - Do not persist renderer caches as canonical project state.
 - Do not let snap-to-geometry silently create topology.
+- Do not assign normal 2D/3D asset-production work to the user.
+- Do not introduce a dependency without recording exact package/version/license/evidence at adoption.
+- Do not let visual realism imply survey accuracy or standards compliance.
 - Do not start polished UI or a large asset library before the semantic/geometry kernel is qualified.
 - Do not add cloud, auth, collaboration, simulation, BIM, grading, or detailed CAD features unless an explicit later specification authorizes them.
+
+## UX and UAT evidence
+
+A screenshot that looks plausible is not acceptance.
+
+When a milestone exposes a relevant user flow:
+- use the applicable `GOLDEN_UAT_CASES.md` case;
+- review the flow against `UX_REVIEW_GATE.md`;
+- verify direct/numeric editing consistency;
+- verify scenario/reference/mode clarity;
+- verify errors and undo/recovery where in scope;
+- record objective evidence.
 
 ## Tests and evidence
 

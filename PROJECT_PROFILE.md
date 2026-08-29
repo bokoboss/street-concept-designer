@@ -18,7 +18,7 @@
 - Languages: not locked; TypeScript and Rust are candidate implementation languages
 - Frameworks: candidate desktop/UI stack is Tauri 2 + React; 2D PixiJS, 3D Three.js, MapLibre under evaluation
 - Package manager: not established
-- Supported OS/runtime: Windows-first desktop target; exact runtime/toolchain not established
+- Supported OS/runtime: Windows-first desktop target; Windows x64 first. Product requires per-user installer plus no-install Portable distribution; final OS/runtime compatibility remains qualification-gated
 
 ## Standard commands
 ### Install/bootstrap
@@ -99,7 +99,7 @@ Changes must not alter the following unless explicitly approved:
 - Commit policy: small coherent commits; no unrelated cleanup
 - PR policy: material changes through PR with explicit success gates/evidence
 - Merge policy: merge only after required gates and review pass; prefer squash when history is exploratory
-- Release policy: not established; no release until qualified product milestone
+- Release policy: no release until qualified product milestone; Windows release must qualify per-user/no-admin installer, Portable mode, offline deployment strategy, trusted code signing, and office-PC UAT
 - Baseline pinning policy: execution tasks must record the exact `main` base SHA at branch/worktree creation in the task/PR/evidence package; do not attempt to make an in-repository profile file self-reference its own HEAD SHA
 
 ## Current known limitations / risks
@@ -109,6 +109,7 @@ Changes must not alter the following unless explicitly approved:
 - Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
 - R1 must prove alignment, stationing, variable-width components, topology, determinism, precision policy, and shared 2D/3D derivation before production editor work.
 - Product-file physical container, persistence mechanism, and final renderer DTOs remain intentionally unimplemented; policy boundaries are documented first.
+- Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
 - Execute R1A only: kernel feasibility + alignment/stationing + cross-section/lane lifecycle under `specs/execution/R1A_ALIGNMENT_LANE_LIFECYCLE.md`. At task start, branch from current accepted `main` and record the exact base SHA in the execution evidence. R1B junction/topology and R1C shared-render proof remain separately gated and must not start automatically.

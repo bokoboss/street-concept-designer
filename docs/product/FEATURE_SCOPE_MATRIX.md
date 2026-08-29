@@ -146,3 +146,17 @@ This matrix prevents feature enthusiasm from overriding product sequencing. `NOW
 ## Sequencing principle
 
 Build depth in the Golden Workflows before breadth in the catalog. A small set of reliable primitives that can create an irregular real-world access/intersection concept is more valuable than many templates/assets that cannot be edited semantically.
+
+
+## Windows distribution
+
+| Capability | Priority | Rationale |
+|---|---|---|
+| Per-user Windows installer without admin | NOW FOR RELEASE ARCHITECTURE / R8-R9 IMPLEMENTATION | common office deployment path |
+| Offline per-user installer | R8-R9 | site/office computers may lack setup-time internet |
+| Portable Light ZIP | R8-R9 REQUIRED | no-install use on office PCs with compatible WebView2 |
+| Portable Offline ZIP | R8-R9 EVIDENCE-GATED REQUIRED OUTCOME | no-install/no-internet constrained use; exact fixed-runtime packaging must be qualified |
+| Trusted code signing | R8-R9 REQUIRED | enterprise/SmartScreen deployment quality |
+| Microsoft Store distribution | LATER/OPTIONAL | not required for core standalone workflow |
+| Windows ARM64 | LATER | x64 first |
+| macOS/Linux packages | LATER | architecture may remain portable but not initial gates |
