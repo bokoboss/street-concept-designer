@@ -20,6 +20,7 @@ Dependencies should point inward toward semantics/kernel rather than renderer-sp
 Related architecture policies:
 - `docs/architecture/COMMAND_TRANSACTION_MODEL.md`
 - `docs/architecture/MAP_BASEMAP_POLICY.md`
+- `docs/architecture/WINDOWS_DISTRIBUTION_POLICY.md`
 - `docs/assets/ASSET_SYSTEM.md`
 - `docs/assets/ASSET_PRODUCTION_PIPELINE.md`
 
@@ -68,3 +69,15 @@ Map imagery/data is reference context only. Renderer and provider are separate a
 ## Asset layer
 
 Engineering markings and many roadside assets should be procedural/semantic; complex presentation props may use normalized 2D/3D representations with explicit provenance. The user's normal workflow must not depend on manually authoring SVG or 3D models.
+
+
+## Desktop distribution boundary
+
+The product is a desktop application whose UI may use web technologies internally. The release architecture must support:
+- per-user Windows installation without Administrator rights;
+- no-install Portable distribution;
+- offline core editing;
+- no end-user Node/Rust/Python/local-server prerequisite;
+- WebView2 runtime/user-data handling appropriate to each distribution profile.
+
+Deployment/storage decisions must not alter canonical project semantics. See `WINDOWS_DISTRIBUTION_POLICY.md`.
