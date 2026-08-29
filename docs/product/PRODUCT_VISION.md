@@ -37,7 +37,8 @@ A user should be able to start from map/satellite/site-plan context, describe or
 - engineering layer separate from presentation layer;
 - Thailand/LHT default with standards-neutral architecture;
 - AI-assisted authoring through deterministic commands;
-- concept-design depth without detailed-design scope creep.
+- concept-design depth without detailed-design scope creep;
+- Windows-first office-friendly distribution: per-user installer plus qualified no-install Portable mode.
 
 ## Initial non-goals
 
