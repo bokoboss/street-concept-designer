@@ -453,3 +453,152 @@ For each UAT run record:
 ## Gate principle
 
 A stage is not accepted because the agent says “implemented”. Relevant Golden UAT cases must become runnable and eventually pass at the milestone where their prerequisites exist.
+
+
+---
+
+# UAT-13 — Windows installer / portable office-PC deployment
+
+Applicable during R8/R9 packaging qualification.
+
+## User goal
+
+Use the same Street Concept Designer project on a normal office computer whether conventional installation is allowed or not.
+
+## Test profiles
+
+### Profile A — Per-user Installer
+
+Machine/account:
+- supported Windows x64;
+- standard non-Administrator user;
+- no development toolchain assumed.
+
+Steps:
+1. launch signed Setup artifact;
+2. install for current user without elevation;
+3. launch application;
+4. create/open a project;
+5. save project outside the application installation folder;
+6. close/reopen;
+7. uninstall;
+8. confirm project file remains;
+9. reinstall/upgrade qualified version;
+10. reopen the same project.
+
+Must pass:
+- no administrator privilege;
+- no Node/Rust/Python prerequisite;
+- WebView2 missing-runtime case handled according to installer profile;
+- project files survive uninstall.
+
+### Profile B — Offline Installer
+
+Machine:
+- no internet during setup.
+
+Steps:
+1. disconnect network;
+2. run Offline Setup;
+3. install without fetching runtime/content from the internet;
+4. launch;
+5. create/save/open local project;
+6. use local reference image;
+7. verify core 2D editing;
+8. verify local 3D when available.
+
+Must pass:
+- setup does not require Microsoft/provider CDN access;
+- core application works offline after install.
+
+### Profile C — Portable Light
+
+Machine/account:
+- standard user;
+- compatible system WebView2 already present;
+- no installation performed.
+
+Steps:
+1. extract Portable ZIP to writable local folder;
+2. run `StreetConceptDesigner.exe`;
+3. verify no installer/UAC elevation flow;
+4. create/open/save project;
+5. import local site-plan image;
+6. perform representative road edit;
+7. close/reopen;
+8. move/copy Portable application folder to another qualified local folder;
+9. launch again;
+10. open same external project file.
+
+Must pass:
+- no installation;
+- no admin;
+- no development runtime/toolchain;
+- no Windows service/local HTTP server dependency;
+- project semantics independent of executable location;
+- writable WebView2/app-data strategy works.
+
+### Profile D — Portable Offline
+
+Machine:
+- no installed WebView2 assumption;
+- network disconnected.
+
+Steps:
+1. extract Portable Offline ZIP;
+2. launch;
+3. verify bundled/runtime strategy is used;
+4. create/open/save project;
+5. restart application;
+6. verify local 2D/3D/reference-image operations;
+7. inspect runtime/app version diagnostics.
+
+Must pass:
+- no installation/admin;
+- no internet;
+- bundled runtime starts correctly;
+- runtime servicing/version is identifiable;
+- package does not rely on a hidden system installation.
+
+## Path matrix
+
+At least test:
+- ASCII local path;
+- Thai/Unicode folder name;
+- path containing spaces;
+- reasonably deep/long project path;
+- application folder and project folder separated.
+
+Network shares are not required as a WebView2 UDF target and should not be treated as a default supported runtime-data path.
+
+## Enterprise/security observations
+
+Record behavior under:
+- Microsoft Defender/SmartScreen;
+- signed publisher identity;
+- Controlled Folder Access where practical;
+- blocked/non-writable runtime-data folder;
+- corporate proxy/no internet.
+
+The application must not bypass enterprise security policy. A blocked condition should produce an actionable diagnostic where technically possible.
+
+## Cross-mode project compatibility
+
+Create a project in one qualified distribution mode and open it in another.
+
+Must pass:
+- same schema/semantic state;
+- stable ids;
+- no installation-mode-specific fields in canonical project content;
+- renderer/cache rebuild succeeds.
+
+## Failure examples
+
+- Portable launches only on a developer PC because Node/Rust is installed;
+- executable opens a localhost server that corporate firewall policy blocks;
+- application requires admin to write beside the executable;
+- WebView2 UDF cannot be created and user sees only a blank window;
+- Portable mode writes canonical projects into a disposable app/cache directory;
+- uninstall deletes user project files;
+- Portable Offline contains a fixed runtime with no identifiable/update servicing policy;
+- unsigned binary is treated as acceptable release evidence despite office policy failures.
