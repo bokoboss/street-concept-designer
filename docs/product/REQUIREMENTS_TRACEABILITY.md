@@ -12,6 +12,10 @@ This matrix is intentionally higher-level than unit tests.
 | P-02 | User does not need Blender/manual 3D asset creation | PRODUCT_VISION | Asset Production Pipeline, Starter Asset Catalog | R6 | UAT-05, UAT-07 |
 | P-03 | Desktop, Windows-first, offline core editing | DECISION_REGISTER | Technical Architecture / later shell | R2/R3 | install/offline UAT R8/R9 |
 | P-04 | Product remains concept-design focused, not detailed Civil CAD | PRODUCT_VISION | FEATURE_SCOPE_MATRIX, ROADMAP | all | scope scrutiny |
+| P-05 | Normal Windows install works per-user without Administrator rights | PRODUCT_VISION / DECISION_REGISTER | WINDOWS_DISTRIBUTION_POLICY | R8/R9 | UAT-13 installer profile |
+| P-06 | Portable ZIP can run without installation/admin/development toolchain | DECISION_REGISTER | WINDOWS_DISTRIBUTION_POLICY | R8/R9 | UAT-13 Portable Light |
+| P-07 | Offline office deployment is qualified | DECISION_REGISTER | WINDOWS_DISTRIBUTION_POLICY | R8/R9 | UAT-13 Offline Installer / Portable Offline |
+| P-08 | Project files behave identically across Installed/Portable modes | PROJECT_FILE_SCHEMA | WINDOWS_DISTRIBUTION_POLICY | R8/R9 | UAT-11 + UAT-13 |
 | UX-01 | 2D plan is primary engineering authoring surface | UX_ARCHITECTURE | LOW_FIDELITY_WORKSPACE_SPEC | R3 | UAT-01/02/03 |
 | UX-02 | Direct manipulation and exact numeric input edit same semantic property | UX_ARCHITECTURE | COMMAND_TRANSACTION_MODEL | R3 | UAT-01, UX Review Gate |
 | UX-03 | Select vs Hand/navigation modes are explicit | UX_ARCHITECTURE | LOW_FIDELITY_WORKSPACE_SPEC | R3 | first-time usability / UX gate |
