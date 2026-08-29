@@ -150,7 +150,7 @@ COMPLETE for R1A.
 ## Development operating system — COMPLETE
 
 Available:
-- Engineering Development Workflow v1.4.1 installed
+- Engineering Development Workflow v1.5.0 installed
 - AGENTS.md
 - PROJECT_PROFILE.md
 - Engineering Constitution
@@ -278,6 +278,30 @@ Current Google Maps Platform terms were identified as incompatible with treating
 
 Status:
 COMPLETE for architecture. Specific production provider selection remains source/licensing/business decision for R7.
+
+---
+
+## Windows distribution architecture — COMPLETE FOR PREIMPLEMENTATION
+
+Available:
+- Windows Distribution & Office-PC Policy
+
+Established:
+- Desktop app, not browser-hosted SaaS;
+- normal per-user/no-admin installer requirement;
+- no-install Portable ZIP requirement;
+- offline installer requirement;
+- Portable Offline / bundled Fixed Version WebView2 as evidence-gated preferred strategy;
+- explicit WebView2 user-data-folder/writeability policy;
+- no end-user Node/Rust/Python/local-server requirement;
+- code-signing and SmartScreen qualification before organizational/public release;
+- Windows 11 x64 primary qualification tier, Windows 10 compatibility only by evidence/security context;
+- office-PC distribution/UAT gates.
+
+Implementation details remain release-engineering evidence-gated and do not block R1A.
+
+Status:
+COMPLETE for architecture; packaging validation belongs to R8/R9.
 
 ---
 
