@@ -261,3 +261,64 @@ Kernel:     Rust native/WASM is the first architecture hypothesis
 ```
 
 This document deliberately does not turn that hypothesis into an implementation lock.
+
+
+# K. Windows runtime / distribution dependencies
+
+## Microsoft Edge WebView2 Runtime
+
+Role:
+Windows webview runtime used by the Tauri shell.
+
+Source:
+https://learn.microsoft.com/en-us/microsoft-edge/webview2/
+
+Status:
+PLATFORM RUNTIME / DISTRIBUTION DEPENDENCY.
+
+Distribution strategies under project policy:
+- Evergreen for standard installed use;
+- Evergreen offline standalone installer for offline setup;
+- existing Evergreen for Portable Light;
+- Fixed Version candidate for Portable Offline.
+
+Important:
+- Fixed Version must be serviced by our release process and cannot be frozen indefinitely.
+- exact runtime version is a release artifact decision, not hard-coded in this preimplementation register.
+- license/redistribution terms for the selected Microsoft runtime package must be checked at release adoption.
+
+References:
+- https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/evergreen-vs-fixed-version
+- https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution
+
+## Windows code signing
+
+Role:
+publisher identity / trusted direct distribution.
+
+Status:
+REQUIRED RELEASE GOVERNANCE, provider not selected.
+
+Candidate mechanisms may include:
+- Microsoft Artifact Signing where eligible;
+- trusted OV/other CA-issued code-signing certificate compatible with current Microsoft requirements.
+
+Do not select a signing provider merely from price/convenience; verify eligibility, organization identity, CI secret/security handling, timestamping, renewal, and enterprise procurement needs.
+
+Reference:
+https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation
+
+## Portable packaging
+
+Portable ZIP is a project release artifact, not a third-party runtime dependency.
+
+Tauri supports `build --no-bundle`, but the final portable artifact must explicitly package/test:
+- application executable;
+- resources/assets;
+- required sidecars/native files;
+- selected WebView2 strategy;
+- license/notices;
+- diagnostics/version metadata.
+
+See:
+`docs/architecture/WINDOWS_DISTRIBUTION_POLICY.md`.
