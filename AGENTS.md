@@ -39,6 +39,7 @@ Relevant specialized context:
 - assets/markings/3D props: `docs/assets/ASSET_SYSTEM.md`, `docs/assets/ASSET_PRODUCTION_PIPELINE.md`, `docs/assets/ASSET_VISUAL_STYLE.md`, `docs/assets/ASSET_METADATA_SCHEMA.md`, and `docs/assets/STARTER_ASSET_CATALOG.md`;
 - standards-sensitive behavior: `docs/standards/STANDARDS_POLICY.md`, `docs/standards/STANDARD_PROFILE_SCHEMA.md`, `docs/standards/THAILAND_SOURCE_REGISTER.md`, and `docs/standards/THAILAND_EXTRACTION_BACKLOG.md`;
 - product dependencies/licenses: `docs/development/DEPENDENCY_LICENSE_REGISTER.md`;
+- Windows packaging/portable/office-PC deployment: `docs/architecture/WINDOWS_DISTRIBUTION_POLICY.md`;
 - production UX/editor flow: `docs/ux/UX_ARCHITECTURE.md`, `docs/ux/LOW_FIDELITY_WORKSPACE_SPEC.md`, `docs/ux/INTERACTION_FLOWS.md`, and `docs/ux/UX_REVIEW_GATE.md`;
 - human acceptance: `docs/uat/GOLDEN_UAT_CASES.md`;
 - requirement traceability: `docs/product/REQUIREMENTS_TRACEABILITY.md`;
