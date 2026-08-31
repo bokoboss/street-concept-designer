@@ -47,4 +47,21 @@ Read in this order:
 
 ## Current status
 
-Pre-implementation foundation. No production architecture is considered qualified until the geometry/semantic spike passes its acceptance gate.
+R1A now contains a qualified-in-scope, renderer-free alignment and lane-lifecycle kernel spike. No production architecture is considered qualified until the broader geometry/semantic spike passes its acceptance gate.
+
+## R1A kernel commands
+
+The R1A spike is a renderer-free Rust library. From the repository root:
+
+```text
+cargo fmt --all -- --check
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked --all-targets --all-features -- --nocapture
+cargo build --locked --target wasm32-unknown-unknown --release
+cargo bench --locked --bench r1a_kernel
+```
+
+The kernel uses metres as canonical units, named tolerances, reference
+alignment stationing, ordered semantic components, and general lane width
+profiles. It does not include product UI, maps, renderers, junction topology,
+or persistence.
