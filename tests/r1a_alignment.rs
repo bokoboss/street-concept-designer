@@ -4,7 +4,10 @@ use street_concept_designer_kernel::{
     Alignment, AlignmentKind, KernelError, Point2, SamplingOptions,
 };
 
-use support::{assert_finite_point, circular_90deg, policy, smooth_s_curve, straight_500m};
+use support::{
+    assert_finite_point, assert_sample_chord_error, circular_90deg, policy, smooth_s_curve,
+    straight_500m,
+};
 
 fn assert_close(actual: f64, expected: f64, tolerance: f64) {
     assert!(
@@ -145,6 +148,81 @@ fn canonical_s_curve_is_stationed_by_deterministic_arc_length_table() {
 }
 
 #[test]
+fn symmetric_inflection_sampling_respects_the_chord_error_budget() {
+    let policy = policy();
+    let alignment = Alignment::smooth_curve(
+        Point2::new(0.0, 0.0),
+        Point2::new(0.0, 1.0),
+        Point2::new(1.0, -1.0),
+        Point2::new(1.0, 0.0),
+        &policy,
+    )
+    .expect("symmetric inflection");
+    let options = SamplingOptions {
+        max_chord_error_m: 0.001,
+        max_segment_length_m: 10.0,
+        max_points: 4096,
+        max_depth: 20,
+    };
+    let samples = alignment.sample(options, &policy).expect("samples");
+
+    assert!(samples.len() > 2, "the inflection must be subdivided");
+    assert_close(alignment.length(), 1.659, 0.01);
+    // Sixteen evenly spaced probes per returned interval cover the known
+    // quarter-region extrema; the margin covers double-rounding only.
+    assert_sample_chord_error(&alignment, &samples, options, &policy, 16);
+}
+
+#[test]
+fn full_turn_arcs_construct_and_sample_in_both_directions() {
+    let policy = policy();
+    let options = SamplingOptions {
+        max_chord_error_m: 0.01,
+        max_segment_length_m: 20.0,
+        max_points: 4096,
+        max_depth: 20,
+    };
+    for sweep in [std::f64::consts::TAU, -std::f64::consts::TAU] {
+        let alignment =
+            Alignment::circular_arc(Point2::new(10.0, -20.0), 20.0, 0.25, sweep, &policy)
+                .expect("full-turn arc");
+        assert_eq!(alignment.kind(), AlignmentKind::CircularArc);
+        assert_close(alignment.length(), 20.0 * std::f64::consts::TAU, 1.0e-12);
+
+        for fraction in [0.0, 0.37, 0.5, 1.0] {
+            let station = alignment.length() * fraction;
+            let point = alignment
+                .point_at(station, &policy)
+                .expect("full-turn point");
+            let tangent = alignment
+                .tangent_at(station, &policy)
+                .expect("full-turn tangent");
+            let normal = alignment
+                .normal_at(station, &policy)
+                .expect("full-turn normal");
+            assert_finite_point(point);
+            assert_close(tangent.length(), 1.0, 1.0e-12);
+            assert_close(normal.length(), 1.0, 1.0e-12);
+            let projection = alignment
+                .project(point, &policy)
+                .expect("full-turn projection");
+            assert!(projection.station_m >= 0.0 && projection.station_m <= alignment.length());
+            assert_finite_point(projection.point);
+        }
+
+        let samples = alignment
+            .sample(options, &policy)
+            .expect("full-turn samples");
+        assert!(samples.len() > 2);
+        assert_sample_chord_error(&alignment, &samples, options, &policy, 4);
+        assert_eq!(
+            samples,
+            alignment.sample(options, &policy).expect("repeat samples")
+        );
+    }
+}
+
+#[test]
 fn sampling_is_adaptive_bounded_and_station_monotonic() {
     let policy = policy();
     let options = SamplingOptions {
@@ -165,6 +243,7 @@ fn sampling_is_adaptive_bounded_and_station_monotonic() {
             assert_close(pair[0].tangent.length(), 1.0, 1.0e-10);
             assert_close(pair[0].normal.length(), 1.0, 1.0e-10);
         }
+        assert_sample_chord_error(&alignment, &samples, options, &policy, 8);
     }
 }
 

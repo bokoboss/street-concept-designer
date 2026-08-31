@@ -403,6 +403,21 @@ impl CircularArcAlignment {
         }
     }
 
+    fn chord_error_bound(&self, start_station: f64, end_station: f64) -> Result<f64, KernelError> {
+        let station_span = end_station - start_station;
+        let angle_span = station_span / self.radius_m;
+        let half_chord_angle = angle_span.abs() / 4.0;
+        let sine = half_chord_angle.sin();
+        let error = 2.0 * self.radius_m * sine * sine;
+        if error.is_finite() {
+            Ok(error)
+        } else {
+            Err(KernelError::NonFiniteResult {
+                operation: "arc sampling chord error",
+            })
+        }
+    }
+
     /// Project a finite XY query to the nearest point on the bounded arc.
     pub fn project(
         &self,
@@ -580,6 +595,20 @@ impl SmoothConceptualCurve {
             let fraction = (station_m - lower.station_m) / station_span;
             lower.t + (upper.t - lower.t) * fraction
         }
+    }
+
+    fn chord_error_bound(
+        &self,
+        start_station: f64,
+        start_point: Point2,
+        end_station: f64,
+        end_point: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<f64, KernelError> {
+        let start_t = self.parameter_at_station(start_station);
+        let end_t = self.parameter_at_station(end_station);
+        let control = cubic_subcurve(self.control, start_t, end_t)?;
+        cubic_chord_error_bound(control, start_point, end_point, policy)
     }
 
     /// Point at bounded station `s` in metres.
@@ -897,7 +926,32 @@ impl Alignment {
         }
     }
 
+    fn chord_error_bound(
+        &self,
+        start_station: f64,
+        start_point: Point2,
+        end_station: f64,
+        end_point: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<f64, KernelError> {
+        match self {
+            Self::Line(_) => Ok(0.0),
+            Self::CircularArc(alignment) => alignment.chord_error_bound(start_station, end_station),
+            Self::SmoothConceptualCurve(alignment) => alignment.chord_error_bound(
+                start_station,
+                start_point,
+                end_station,
+                end_point,
+                policy,
+            ),
+        }
+    }
+
     /// Adaptively sample the alignment with a deterministic point budget.
+    ///
+    /// `max_chord_error_m` is enforced with a primitive-specific bound: zero for
+    /// lines, circular-arc sagitta for arcs, and a cubic convex-hull bound for
+    /// smooth conceptual curves.
     pub fn sample(
         &self,
         options: SamplingOptions,
@@ -997,15 +1051,21 @@ impl<'a> SampleContext<'a> {
     ) -> Result<(), KernelError> {
         let midpoint_station = start_station + (end_station - start_station) / 2.0;
         let midpoint = self.alignment.point_at(midpoint_station, self.policy)?;
-        let deviation = point_segment_distance(midpoint, start_point, end_point, self.policy)?;
         let station_span = end_station - start_station;
         if !station_span.is_finite() {
             return Err(KernelError::NonFiniteResult {
                 operation: "sampling station span",
             });
         }
+        let chord_error = self.alignment.chord_error_bound(
+            start_station,
+            start_point,
+            end_station,
+            end_point,
+            self.policy,
+        )?;
         let needs_split = station_span > self.options.max_segment_length_m
-            || deviation > self.options.max_chord_error_m;
+            || chord_error > self.options.max_chord_error_m;
         if needs_split {
             if depth >= self.options.max_depth || self.stations.len() + 2 > self.options.max_points
             {
@@ -1070,14 +1130,87 @@ fn split_cubic(control: CubicControl) -> (CubicControl, CubicControl) {
     )
 }
 
+fn split_cubic_at(control: CubicControl, parameter: f64) -> (CubicControl, CubicControl) {
+    let p01 = lerp(control.p0, control.p1, parameter);
+    let p12 = lerp(control.p1, control.p2, parameter);
+    let p23 = lerp(control.p2, control.p3, parameter);
+    let p012 = lerp(p01, p12, parameter);
+    let p123 = lerp(p12, p23, parameter);
+    let p0123 = lerp(p012, p123, parameter);
+    (
+        CubicControl {
+            p0: control.p0,
+            p1: p01,
+            p2: p012,
+            p3: p0123,
+        },
+        CubicControl {
+            p0: p0123,
+            p1: p123,
+            p2: p23,
+            p3: control.p3,
+        },
+    )
+}
+
+fn cubic_subcurve(
+    control: CubicControl,
+    start_parameter: f64,
+    end_parameter: f64,
+) -> Result<CubicControl, KernelError> {
+    if !start_parameter.is_finite()
+        || !end_parameter.is_finite()
+        || !(0.0..=1.0).contains(&start_parameter)
+        || !(0.0..=1.0).contains(&end_parameter)
+        || end_parameter <= start_parameter
+    {
+        return Err(KernelError::SamplingLimitExceeded);
+    }
+    let (_, remaining) = split_cubic_at(control, start_parameter);
+    let local_end = (end_parameter - start_parameter) / (1.0 - start_parameter);
+    let (subcurve, _) = split_cubic_at(remaining, local_end);
+    if [subcurve.p0, subcurve.p1, subcurve.p2, subcurve.p3]
+        .iter()
+        .all(|point| point.is_finite())
+    {
+        Ok(subcurve)
+    } else {
+        Err(KernelError::NonFiniteResult {
+            operation: "smooth curve sampling subdivision",
+        })
+    }
+}
+
 fn midpoint(first: Point2, second: Point2) -> Point2 {
     Point2::new((first.x + second.x) / 2.0, (first.y + second.y) / 2.0)
+}
+
+fn lerp(first: Point2, second: Point2, fraction: f64) -> Point2 {
+    first + (second - first) * fraction
 }
 
 fn cubic_flatness(control: CubicControl, policy: &TolerancePolicy) -> Result<f64, KernelError> {
     let first = point_segment_distance(control.p1, control.p0, control.p3, policy)?;
     let second = point_segment_distance(control.p2, control.p0, control.p3, policy)?;
     Ok(first.max(second))
+}
+
+fn cubic_chord_error_bound(
+    control: CubicControl,
+    chord_start: Point2,
+    chord_end: Point2,
+    policy: &TolerancePolicy,
+) -> Result<f64, KernelError> {
+    let mut bound = 0.0_f64;
+    for point in [control.p0, control.p1, control.p2, control.p3] {
+        bound = bound.max(point_segment_distance(
+            point,
+            chord_start,
+            chord_end,
+            policy,
+        )?);
+    }
+    Ok(bound)
 }
 
 fn flatten_cubic(

@@ -1,8 +1,10 @@
 mod support;
 
-use street_concept_designer_kernel::{Alignment, KernelError, Point2, SamplingOptions};
+use street_concept_designer_kernel::{
+    Alignment, KernelError, Point2, SamplingOptions, TolerancePolicy,
+};
 
-use support::{circular_90deg, policy, smooth_s_curve, straight_500m};
+use support::{assert_sample_chord_error, circular_90deg, policy, smooth_s_curve, straight_500m};
 
 #[derive(Clone, Copy)]
 struct DeterministicRng(u64);
@@ -37,11 +39,127 @@ fn assert_finite_projection(alignment: &Alignment, query: Point2) {
             assert!(projection.distance_m.is_finite());
             assert!(projection.lateral_offset_m.is_finite());
             assert!(projection.point.is_finite());
+            assert!(projection.station_m >= 0.0);
+            assert!(projection.station_m <= alignment.length());
         }
         Err(KernelError::NonFiniteResult { operation }) => {
             panic!("finite fixture produced non-finite result: {operation}");
         }
         Err(error) => panic!("finite fixture unexpectedly rejected: {error}"),
+    }
+}
+
+fn adversarial_smooth_curves(policy: &TolerancePolicy) -> Vec<Alignment> {
+    let named = [
+        (
+            Point2::new(0.0, 0.0),
+            Point2::new(0.0, 1.0),
+            Point2::new(1.0, -1.0),
+            Point2::new(1.0, 0.0),
+        ),
+        (
+            Point2::new(0.0, 0.0),
+            Point2::new(10.0, 60.0),
+            Point2::new(80.0, -20.0),
+            Point2::new(140.0, 10.0),
+        ),
+        (
+            Point2::new(0.0, 0.0),
+            Point2::new(40.0, 0.5),
+            Point2::new(80.0, -0.5),
+            Point2::new(120.0, 0.0),
+        ),
+        (
+            Point2::new(0.0, 0.0),
+            Point2::new(2.0, 50.0),
+            Point2::new(30.0, -50.0),
+            Point2::new(60.0, 0.0),
+        ),
+        (
+            Point2::new(0.0, 0.0),
+            Point2::new(1.0e-4, 1.0e-4),
+            Point2::new(99.9999, -1.0e-4),
+            Point2::new(100.0, 0.0),
+        ),
+    ];
+    named
+        .into_iter()
+        .map(|(p0, p1, p2, p3)| Alignment::smooth_curve(p0, p1, p2, p3, policy))
+        .collect::<Result<Vec<_>, _>>()
+        .expect("named smooth adversarial curves")
+}
+
+#[test]
+fn generated_smooth_curves_preserve_finite_bounded_and_error_bounded_behavior() {
+    let policy = policy();
+    let options = SamplingOptions {
+        max_chord_error_m: 0.01,
+        max_segment_length_m: 10.0,
+        max_points: 4096,
+        max_depth: 20,
+    };
+    let mut rng = DeterministicRng::new(0x534d_4f4f_5448_5253);
+    let mut cases = adversarial_smooth_curves(&policy);
+    for _ in 0..64 {
+        let length = rng.between(20.0, 220.0);
+        let p0 = Point2::new(rng.between(-1.0e5, 1.0e5), rng.between(-1.0e5, 1.0e5));
+        let p3 = Point2::new(p0.x + length, p0.y + rng.between(-20.0, 20.0));
+        let p1 = Point2::new(
+            p0.x + length * rng.between(0.1, 0.4),
+            p0.y + rng.between(-80.0, 80.0),
+        );
+        let p2 = Point2::new(
+            p0.x + length * rng.between(0.6, 0.9),
+            p3.y + rng.between(-80.0, 80.0),
+        );
+        cases.push(
+            Alignment::smooth_curve(p0, p1, p2, p3, &policy).expect("generated smooth curve"),
+        );
+    }
+
+    for (index, alignment) in cases.iter().enumerate() {
+        assert!(alignment.length().is_finite());
+        assert!(alignment.length() > 0.0);
+        let samples = alignment.sample(options, &policy).expect("smooth samples");
+        assert!(samples.len() >= 2, "case {index} needs endpoints");
+        assert_eq!(samples.first().expect("first sample").station_m, 0.0);
+        assert_eq!(
+            samples.last().expect("last sample").station_m,
+            alignment.length()
+        );
+        for pair in samples.windows(2) {
+            assert!(pair[0].station_m < pair[1].station_m);
+            assert!(
+                pair[1].station_m - pair[0].station_m
+                    <= options.max_segment_length_m + policy.station_bound_m * 10.0
+            );
+            for sample in pair {
+                assert!(sample.point.is_finite());
+                assert!(sample.tangent.is_finite());
+                assert!(sample.normal.is_finite());
+            }
+        }
+        assert_sample_chord_error(alignment, &samples, options, &policy, 8);
+        assert_eq!(
+            samples,
+            alignment
+                .sample(options, &policy)
+                .expect("repeat smooth samples")
+        );
+        for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            let station = alignment.length() * fraction;
+            let point = alignment.point_at(station, &policy).expect("smooth point");
+            let tangent = alignment
+                .tangent_at(station, &policy)
+                .expect("smooth tangent");
+            let normal = alignment
+                .normal_at(station, &policy)
+                .expect("smooth normal");
+            assert!(point.is_finite());
+            assert!(tangent.is_finite());
+            assert!(normal.is_finite());
+            assert_finite_projection(alignment, point);
+        }
     }
 }
 

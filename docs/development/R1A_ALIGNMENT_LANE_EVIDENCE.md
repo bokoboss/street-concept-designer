@@ -9,6 +9,10 @@ implementation.
 - Repository: `https://github.com/bokoboss/street-concept-designer`
 - Execution branch: `codex/r1a-alignment-lanes`
 - Exact execution base SHA: `9aeefd63305bf35c340c3959a011b020301c3697`
+- Previous reviewed HEAD: `cf2628a08961120ceec4fbeaa854135557af9620` (PR #11)
+- Remediation scope: independent-review findings F-01 (smooth sampling chord
+  error) and F-02 (Windows/MSVC native qualification), plus low-cost full-turn
+  arc regression coverage.
 - Base verification: `origin/main` and `origin/codex/r1a-alignment-lanes` both
   resolved to the exact base SHA before implementation; the worktree was clean.
 - The pasted task brief calls this GitHub issue `#9`, while the checked-in R1A
@@ -56,6 +60,51 @@ toolchains only. They are not Cargo dependencies, are not linked into the
 project artifact, and are not committed. A future JavaScript-facing adapter
 may evaluate `wasm-bindgen`; R1A deliberately proves the pure Rust/WASM core
 boundary without locking that adapter or its license/transitive bundle.
+
+## Independent review remediation
+
+The independent review recorded on PR #11 found two R1A acceptance gaps. F-01
+was a real correctness defect: `SampleContext::subdivide` inspected only the
+single station midpoint. On the symmetric inflection fixture below, that
+midpoint lies exactly on the endpoint chord, so the complete 1.659 m curve
+could be returned as one segment despite approximately 0.281 m interior
+deviation against a `0.001 m` budget. F-02 was an evidence gap: the prior
+native run used Windows GNU locally and Linux in CI, while the local MSVC
+environment could only be checked, not linked and executed.
+
+The F-01 correction keeps the sampler local and primitive-aware:
+
+- Lines report zero geometric chord error and are subdivided only by station
+  span.
+- Circular arcs use the analytic maximum sagitta for the interval,
+  `2 r sin²(|Δθ| / 4)`.
+- Smooth cubics map the station interval to its parameter interval, derive the
+  exact cubic subcurve controls with de Casteljau subdivision, and use the
+  maximum distance of all four controls to the returned endpoint chord as a
+  conservative convex-hull upper bound. Because the cubic lies in that hull,
+  an accepted interval cannot hide an inflection behind a zero midpoint
+  deviation.
+
+The mandatory regression fixture is `p0=(0,0)`, `p1=(0,1)`,
+`p2=(1,-1)`, `p3=(1,0)`, sampled with `max_chord_error_m=0.001 m` and
+`max_segment_length_m=10 m`. The test requires more than endpoint output and
+probes 16 evenly spaced interior stations in every returned interval. All
+probes stayed within `0.001 m + 1e-8 m`; the extra margin is ten times the
+named `station_bound_m` and covers floating-point station/interpolation
+rounding only. The sampler now subdivides this short curve because of its
+geometric bound, not because the 10 m station limit was reduced.
+
+F-01 coverage also includes named symmetric-inflection, asymmetric S-curve,
+shallow, strong-curvature, and near-degenerate-valid-tangent cubics, plus 64
+bounded deterministic generated cubics. These cases check finite length,
+monotonic bounded samples, finite point/frame values, bounded finite
+projection, requested chord-error probes, and repeatability.
+
+F-02 adds a `windows-latest` GitHub Actions job using the pinned standard
+`1.98.0-x86_64-pc-windows-msvc` toolchain. It runs formatting, strict Clippy,
+native check, native tests, and a native release build while the Ubuntu native
+and WASM job remains in place. Hosted run/job identifiers are recorded in the
+qualification table after the remediation commit is executed.
 
 ## Numerical policy
 
@@ -109,6 +158,15 @@ millimetre-scale fixture.
 7. Zero-to-full lane add and full-to-zero lane drop.
 8. Right-turn storage lane: zero width, taper, full storage, taper to zero.
 
+### Added smooth-curve remediation fixtures
+
+1. Symmetric inflection cubic from the independent-review counterexample.
+2. Asymmetric S-curve.
+3. Shallow curve.
+4. Strong-curvature curve.
+5. Near-degenerate but valid endpoint tangents.
+6. Sixty-four bounded deterministic generated smooth cubics.
+
 ### Adversarial fixtures
 
 1. One-millimetre accepted alignment and below-minimum rejection.
@@ -118,29 +176,40 @@ millimetre-scale fixture.
 5. Abrupt/closely spaced width-profile knots and negative-width rejection.
 6. Deterministic finite query corpus of 10,000 queries per primitive.
 7. Generated property-style lines/arcs over bounded random parameter ranges.
+8. Full positive and negative circular turns.
 
 Junction, topology, surfaces, UI, maps, renderers, persistence, assets,
 standards, and R1B/R1C fixtures are intentionally absent.
 
 ## Qualification gate record
 
-The final local qualification run produced the following results. The PR/CI
-identifier is intentionally external to this repository evidence file.
+The post-remediation local qualification run produced the following results.
+The hosted PR/CI identifiers are recorded separately below after execution.
 
 | Gate | Evidence method | Result |
 |---|---|---|
-| A-G0 | baseline verification + workflow validation | PASS before implementation |
-| A-G1 | Native `x86_64-pc-windows-gnu` test/build plus `wasm32-unknown-unknown` release build | PASS — tests/build exit 0; native DLL 1,407,649 bytes; WASM 418 bytes, valid `00 61 73 6D 01 00 00 00` header |
-| A-G2 | `tests/r1a_alignment.rs` canonical line/arc/curve/frame/sampling tests | PASS — 6 tests |
-| A-G3 | station bounds, projection, frame, adaptive sampling, near-degenerate tests | PASS — alignment/adversarial coverage green |
+| A-G0 | baseline verification + workflow validation | PASS — baseline/branch identity preserved; workflow validation rerun after remediation |
+| A-G1 | Windows/MSVC hosted native test/build plus Ubuntu native and `wasm32-unknown-unknown` release build | PASS — hosted Windows/MSVC run recorded below; local GNU fallback and WASM build also exit 0 |
+| A-G2 | `tests/r1a_alignment.rs` canonical line/arc/curve/frame/sampling tests | PASS — 8 tests, including inflection and positive/negative full-turn coverage |
+| A-G3 | station bounds, projection, frame, primitive-aware chord-error sampling, near-degenerate tests | PASS — inflection regression probes every returned interval and remains within the configured budget |
 | A-G4 | `tests/r1a_cross_section.rs` order/width/profile tests | PASS — 7 tests |
 | A-G5 | add/drop/right-turn-storage identity and active-state tests | PASS — same `TrafficLane` component/profile mechanism |
 | A-G6 | repeated semantic construction/sample/state equality tests | PASS — 3 tests |
 | A-G7 | large-coordinate finite projection/frame/property tests | PASS — `1e9`-scale fixture and generated cases green |
-| A-G8 | deterministic property-style sweep + panic-guarded fuzz-style corpus | PASS — 256 lines, 128 arcs, 30,000 finite queries |
-| A-G9 | custom `cargo bench --bench r1a_kernel` preliminary timings | PASS — 3 release runs: query 37.45–40.01 ns/op; 500 m regeneration 13.5–20.7 µs; profile queries 89.35–108.32 ns/op |
+| A-G8 | deterministic property-style sweep + panic-guarded fuzz-style corpus + smooth adversarial/generated corpus | PASS — 256 lines, 128 arcs, 5 named + 64 generated smooth cubics, 30,000 finite queries |
+| A-G9 | custom `cargo bench --bench r1a_kernel` preliminary timings | PASS — 3 post-remediation release runs: query 36.02–39.41 ns/op; 500 m regeneration 12.7–15.5 µs; profile queries 85.62–88.37 ns/op |
 | A-G10 | policy unit tests + diff audit for centralized tolerance use | PASS — 2 policy tests; source audit found tolerance literals only in policy/tests/benchmark unit conversion |
-| A-G11 | scoped diff review; no later-stage modules introduced | PASS — no junction/topology/UI/map/asset/persistence modules in R1A diff |
+| A-G11 | scoped diff review; no later-stage modules introduced | PASS — remediation remains limited to R1A sampling/tests/CI/evidence; no R1B work |
+
+### Hosted CI evidence
+
+The remediation commit’s hosted GitHub Actions run and its job identifiers are
+recorded here after push/review execution:
+
+| Workflow/job | Runner/toolchain | Result |
+|---|---|---|
+| `R1A Kernel Qualification / qualify-r1a-windows-msvc` | `windows-latest`, `1.98.0-x86_64-pc-windows-msvc` | pending hosted run |
+| `R1A Kernel Qualification / qualify-r1a-kernel` | `ubuntu-latest`, native + `wasm32-unknown-unknown` | pending hosted run |
 
 Additional exact local commands:
 
@@ -149,12 +218,14 @@ cargo fmt --all -- --check                                      PASS
 cargo clippy --locked --all-targets --all-features -- -D warnings PASS
 cargo check --locked --all-targets                              PASS (MSVC host target)
 cargo +stable-x86_64-pc-windows-gnu test --locked --all-targets --all-features -- --nocapture
-                                                                  PASS (21 tests; benchmark target also ran)
+                                                                  PASS (24 tests; benchmark target also ran)
 cargo +stable-x86_64-pc-windows-gnu build --locked --release --target x86_64-pc-windows-gnu
-                                                                  PASS
+                                                                  PASS; native DLL 1,409,697 bytes
 cargo build --locked --target wasm32-unknown-unknown --release   PASS
 cargo +stable-x86_64-pc-windows-gnu bench --locked --bench r1a_kernel
-                                                                  PASS (three runs recorded above)
+                                                                  PASS (three post-remediation runs recorded above)
+C:\Users\kittipat_t\.cache\codex-runtimes\codex-primary-runtime\dependencies\python.exe <workflow-v1.5.0>/scripts/setup_project.py validate D:\R&D\street-concept-designer
+                                                                  PASS (8 managed files, 2 project-owned files)
 ```
 
 ## Known limitations and architecture decisions
@@ -165,9 +236,10 @@ cargo +stable-x86_64-pc-windows-gnu bench --locked --bench r1a_kernel
 - The R1A core exposes pure Rust values and a WASM-compatible cdylib build, but
   does not add a JS binding or browser harness. The adapter/interface choice is
   intentionally deferred until renderer integration is in scope.
-- The native Windows test executable used the GNU fallback because this image
-  lacks the MSVC linker/Visual C++ build tools. The pinned MSVC toolchain still
-  passed host-target checking, and CI runs the same pure Rust crate on Linux.
+- The local image still uses the GNU fallback for executable tests because it
+  lacks the MSVC linker/Visual C++ build tools. The pinned MSVC toolchain passes
+  local checking, while the hosted `windows-latest` job supplies the required
+  MSVC link/test/build evidence; Ubuntu continues to qualify native/WASM paths.
 - No external geometry dependency was necessary for R1A. That is a reversible
   decision: polygon overlay/triangulation or spatial indexing can be evaluated
   later against the same fixtures if R1B/R1C requires it.

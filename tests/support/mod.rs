@@ -2,7 +2,8 @@
 
 use street_concept_designer_kernel::{
     Alignment, ComponentId, ComponentKind, CrossSection, CrossSectionComponent,
-    PiecewiseLinearWidthProfile, Point2, StationRange, TolerancePolicy, WidthKnot,
+    PiecewiseLinearWidthProfile, Point2, SamplePoint, SamplingOptions, StationRange,
+    TolerancePolicy, WidthKnot,
 };
 
 pub fn policy() -> TolerancePolicy {
@@ -143,6 +144,41 @@ pub fn right_turn_pocket_cross_section() -> (CrossSection, ComponentId) {
 
 pub fn assert_finite_point(point: Point2) {
     assert!(point.is_finite(), "non-finite point: {point:?}");
+}
+
+pub fn assert_sample_chord_error(
+    alignment: &Alignment,
+    samples: &[SamplePoint],
+    options: SamplingOptions,
+    policy: &TolerancePolicy,
+    probe_count: usize,
+) {
+    assert!(probe_count > 0);
+    let allowed_error = options.max_chord_error_m + policy.station_bound_m * 10.0;
+    for (segment_index, pair) in samples.windows(2).enumerate() {
+        let start = pair[0];
+        let end = pair[1];
+        for probe_index in 1..=probe_count {
+            let fraction = probe_index as f64 / (probe_count + 1) as f64;
+            let station = start.station_m + (end.station_m - start.station_m) * fraction;
+            let point = alignment.point_at(station, policy).expect("probe point");
+            let deviation = point_segment_distance(point, start.point, end.point);
+            assert!(
+                deviation <= allowed_error,
+                "segment {segment_index} probe {probe_index} exceeded chord error: {deviation} m > {allowed_error} m"
+            );
+        }
+    }
+}
+
+fn point_segment_distance(point: Point2, start: Point2, end: Point2) -> f64 {
+    let segment = end - start;
+    let length = segment.length();
+    if length == 0.0 {
+        return point.distance_to(start);
+    }
+    let fraction = ((point - start).dot(segment) / (length * length)).clamp(0.0, 1.0);
+    point.distance_to(start + segment * fraction)
 }
 
 pub fn assert_finite_component_kind(kind: ComponentKind) {
