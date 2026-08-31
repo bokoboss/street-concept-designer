@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: bokoboss/engineering-development-workflow
-          ref: main
+          ref: 9e2494616393f0c397f065db274a0ce572206599 # v1.5.0
           path: .engineering-workflow-source
 
       - name: Set up Python

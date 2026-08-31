@@ -1,0 +1,33 @@
+name: R1A Kernel Qualification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-r1a-kernel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run strict lint
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Run native tests and deterministic benchmark target
+        run: cargo test --locked --all-targets --all-features -- --nocapture
+
+      - name: Build WASM kernel artifact
+        run: cargo build --locked --target wasm32-unknown-unknown --release
