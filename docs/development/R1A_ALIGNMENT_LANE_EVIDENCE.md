@@ -10,6 +10,7 @@ implementation.
 - Execution branch: `codex/r1a-alignment-lanes`
 - Exact execution base SHA: `9aeefd63305bf35c340c3959a011b020301c3697`
 - Previous reviewed HEAD: `cf2628a08961120ceec4fbeaa854135557af9620` (PR #11)
+- Remediation implementation commit: `cffaf84d05c945b4fc78f722aab7a533364acd3b`
 - Remediation scope: independent-review findings F-01 (smooth sampling chord
   error) and F-02 (Windows/MSVC native qualification), plus low-cost full-turn
   arc regression coverage.
@@ -103,8 +104,8 @@ projection, requested chord-error probes, and repeatability.
 F-02 adds a `windows-latest` GitHub Actions job using the pinned standard
 `1.98.0-x86_64-pc-windows-msvc` toolchain. It runs formatting, strict Clippy,
 native check, native tests, and a native release build while the Ubuntu native
-and WASM job remains in place. Hosted run/job identifiers are recorded in the
-qualification table after the remediation commit is executed.
+and WASM job remains in place. The hosted run/job identifiers are recorded in
+the qualification table below.
 
 ## Numerical policy
 
@@ -184,7 +185,7 @@ standards, and R1B/R1C fixtures are intentionally absent.
 ## Qualification gate record
 
 The post-remediation local qualification run produced the following results.
-The hosted PR/CI identifiers are recorded separately below after execution.
+The hosted PR/CI identifiers are recorded separately below.
 
 | Gate | Evidence method | Result |
 |---|---|---|
@@ -203,13 +204,14 @@ The hosted PR/CI identifiers are recorded separately below after execution.
 
 ### Hosted CI evidence
 
-The remediation commit’s hosted GitHub Actions run and its job identifiers are
-recorded here after push/review execution:
+The remediation implementation commit’s hosted GitHub Actions run and its job
+identifiers are recorded here:
 
 | Workflow/job | Runner/toolchain | Result |
 |---|---|---|
-| `R1A Kernel Qualification / qualify-r1a-windows-msvc` | `windows-latest`, `1.98.0-x86_64-pc-windows-msvc` | pending hosted run |
-| `R1A Kernel Qualification / qualify-r1a-kernel` | `ubuntu-latest`, native + `wasm32-unknown-unknown` | pending hosted run |
+| `R1A Kernel Qualification / qualify-r1a-windows-msvc` | `windows-latest`, `1.98.0-x86_64-pc-windows-msvc` | PASS — [run 33422001987](https://github.com/bokoboss/street-concept-designer/actions/runs/33422001987), [job 99586381821](https://github.com/bokoboss/street-concept-designer/actions/runs/33422001987/job/99586381821); fmt, Clippy, check, native tests, and release build all passed |
+| `R1A Kernel Qualification / qualify-r1a-kernel` | `ubuntu-latest`, native + `wasm32-unknown-unknown` | PASS — [run 33422001987](https://github.com/bokoboss/street-concept-designer/actions/runs/33422001987), [job 99586381483](https://github.com/bokoboss/street-concept-designer/actions/runs/33422001987/job/99586381483); native tests/benchmark target and WASM release build passed |
+| `Engineering Workflow Integrity / validate-engineering-workflow` | `ubuntu-latest`, workflow v1.5.0 | PASS — [run 33422001792](https://github.com/bokoboss/street-concept-designer/actions/runs/33422001792), [job 99586381149](https://github.com/bokoboss/street-concept-designer/actions/runs/33422001792/job/99586381149) |
 
 Additional exact local commands:
 
