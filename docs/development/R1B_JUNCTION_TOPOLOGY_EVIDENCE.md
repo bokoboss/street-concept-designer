@@ -18,9 +18,9 @@ design.
 
 - Accepted execution base: `fc384b531d9f3a04790cbd9606dc71af3b310a0e`.
 - Execution branch: `codex/r1b-junction-topology`.
-- Implementation verification commit: recorded in the final handoff after the
-  coherent implementation commit; the branch was clean at the accepted base
-  before R1B changes.
+- Implementation verification commit: `3cc7549` (`R1B: add junction geometry
+  and topology kernel`); the branch was clean at the accepted base before R1B
+  changes.
 - Workflow validation: Engineering Development Workflow v1.5.0, validated
   with `setup_project.py validate`; result was `VALIDATION PASS` for the
   managed/project-owned workflow files.
