@@ -11,12 +11,12 @@
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
 - Accepted date: 2026-09-01
-- Current phase/milestone: R1B accepted; R1C ready for bounded execution
-- Last accepted milestone PR / CI: PR #13 (`R1B: qualify junction geometry and topology kernel`) merged as `329281f464456b7bc94896cf5e08f0c58643e7d5`; final-head R1B qualification run `33456860583` PASS and workflow integrity run `33456860580` PASS
+- Current phase/milestone: R1 technical proof completed; post-R1 production-stage planning is next
+- Last accepted milestone PR / CI: PR #16 (`R1C: qualify shared 2D and 3D derivation boundary`) merged as `48ae85927838b3fdc496f252e2df6e1255e4898f`; final-head R1C qualification run `33473865306` PASS, R1A regression `33473865400` PASS, R1B regression `33473865383` PASS, and workflow integrity `33473865597` PASS
 
 ## Technology stack
 - Languages: Rust is accepted for the R1 engineering kernel; TypeScript remains the candidate application/UI language
-- Frameworks: candidate desktop/UI stack is Tauri 2 + React; 2D PixiJS, 3D Three.js, MapLibre under evaluation
+- Frameworks: candidate desktop/UI stack remains Tauri 2 + React; PixiJS and Three.js remain reasonable renderer candidates after R1C but are not yet adopted; MapLibre remains under evaluation
 - Package manager: Cargo established for the Rust kernel; frontend package manager not yet established
 - Supported OS/runtime: Windows-first desktop target; Windows x64 first. Product requires per-user installer plus no-install Portable distribution; final OS/runtime compatibility remains qualification-gated
 
@@ -112,9 +112,9 @@ Changes must not alter the following unless explicitly approved:
 - Rust is accepted for the current R1 kernel path; no third-party geometry library has been required through R1B.
 - Current UI/rendering stack is candidate architecture only.
 - Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
-- R1A/R1B have proven alignment, stationing, variable-width components, topology, determinism, and precision policy; R1C must now prove shared 2D/3D derivation before production editor work.
+- R1A/R1B/R1C have proven alignment/stationing, exact variable-width lifecycle breakpoints, topology, deterministic shared 2D/3D derivation, scoped semantic selection identity, and local-render-origin precision. Production editor/application integration remains unimplemented.
 - Product-file physical container, persistence mechanism, and final renderer DTOs remain intentionally unimplemented; policy boundaries are documented first.
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- Execute R1C only: shared renderer-facing derivation proof under `specs/execution/R1C_SHARED_RENDER_PROOF.md`. At task start, branch from current accepted `main` and record the exact base SHA in execution evidence. Production UI/editor work remains separately gated and must not start automatically.
+- Establish a fresh post-R1 production-stage execution plan before implementation. The roadmap currently identifies R2 as Production Project Core, but R2 must receive its own bounded issue/spec/base SHA and must not start automatically from this profile update.
