@@ -5,9 +5,10 @@ use std::collections::HashSet;
 use street_concept_designer_kernel::{
     derive_diagnostic_2d, derive_diagnostic_3d, Alignment, ComponentId, ComponentKind,
     CrossSection, CrossSectionComponent, CrossingRelation, DerivedComponent,
-    DerivedEngineeringSnapshot, DiagnosticPrimitive2D, JunctionId, JunctionOptions, MeshTopology,
-    PiecewiseLinearWidthProfile, Point2, PrimitiveRole, Road, RoadId, RoadNetwork, SemanticRef,
-    TolerancePolicy,
+    DerivedEngineeringSnapshot, DiagnosticPrimitive2D, JunctionId, JunctionOptions, LaneConnection,
+    LaneConnectionId, MeshTopology, PiecewiseLinearWidthProfile, Point2, PrimitiveRole, Road,
+    RoadId, RoadNetwork, SamplingOptions, SemanticRef, TolerancePolicy,
+    FLOAT32_LOCAL_COORDINATE_TOLERANCE_M,
 };
 
 use support::{
@@ -74,6 +75,30 @@ fn create_junction(
     network
         .create_junction(&candidate, junction_id, JunctionOptions::new(), &policy())
         .expect("junction creation")
+}
+
+fn install_manual_connection(network: &mut RoadNetwork, junction_id: &JunctionId) {
+    let automatic = network
+        .junction(junction_id)
+        .expect("junction")
+        .lane_connections()
+        .first()
+        .cloned()
+        .expect("automatic connection");
+    let manual = LaneConnection::new(
+        "manual-connection",
+        automatic.from_approach_id().clone(),
+        automatic.from_lane_id().clone(),
+        automatic.to_approach_id().clone(),
+        automatic.to_lane_id().clone(),
+        automatic.movement(),
+    )
+    .expect("manual connection");
+    network
+        .junction_mut(junction_id)
+        .expect("mutable junction")
+        .replace_lane_connections(vec![manual])
+        .expect("manual connection replacement");
 }
 
 fn component<'a>(
@@ -148,6 +173,25 @@ fn assert_junction_trace(network: &RoadNetwork, junction_id: &JunctionId) {
     let three_d = derive_diagnostic_3d(&snapshot).expect("3D junction derivation");
     two_d.validate(&policy()).expect("valid junction 2D");
     three_d.validate().expect("valid junction 3D");
+    for primitive in two_d.primitives() {
+        if let DiagnosticPrimitive2D::Polyline(polyline) = primitive {
+            assert!(polyline
+                .points()
+                .windows(2)
+                .any(|pair| pair[0].distance_to(pair[1]) > policy().coordinate_coincidence_m));
+        }
+    }
+    for mesh in three_d.meshes() {
+        if mesh.topology() == MeshTopology::LineStrip {
+            assert!(mesh.indices().windows(2).any(|pair| {
+                let first = mesh.positions()[pair[0] as usize];
+                let second = mesh.positions()[pair[1] as usize];
+                let dx = f64::from(second[0] - first[0]);
+                let dy = f64::from(second[1] - first[1]);
+                dx.hypot(dy) > FLOAT32_LOCAL_COORDINATE_TOLERANCE_M
+            }));
+        }
+    }
     let junction_ref = SemanticRef::Junction(junction_id.clone());
     assert!(two_d.contains_semantic_ref(&junction_ref));
     assert!(three_d.contains_semantic_ref(&junction_ref));
@@ -205,10 +249,22 @@ fn straight_and_curved_roads_trace_one_shared_component_derivation() {
         ))
         .expect("straight road");
     let arc = circular_90deg();
-    let arc_cross_section = constant_cross_section(
+    let accepted_arc_samples = arc
+        .sample(SamplingOptions::from_policy(&policy()), &policy())
+        .expect("accepted curved alignment samples");
+    let arc_cross_section = CrossSection::new(
         arc.station_range(),
-        &[("lane-1", ComponentKind::TrafficLane, 3.5)],
-    );
+        vec![CrossSectionComponent::traffic_lane(
+            "lane-1",
+            width_profile(
+                arc.station_range(),
+                &[(0.0, 3.5), (17.3, 4.0), (46.1, 3.0), (arc.length(), 3.0)],
+            ),
+        )
+        .expect("curved variable lane")],
+        &policy(),
+    )
+    .expect("curved cross-section");
     network
         .add_road(road("curved", arc, arc_cross_section))
         .expect("curved road");
@@ -217,7 +273,23 @@ fn straight_and_curved_roads_trace_one_shared_component_derivation() {
         .expect("shared snapshot");
     snapshot.validate(&policy()).expect("valid shared snapshot");
     assert_eq!(snapshot.roads().len(), 2);
-    assert!(snapshot.roads()[1].alignment().len() > 2);
+    let curved_road = snapshot
+        .roads()
+        .iter()
+        .find(|road| road.id().as_str() == "curved")
+        .expect("derived curved road");
+    assert!(curved_road.alignment().len() > 2);
+    for station_m in [17.3, 46.1] {
+        assert!(curved_road
+            .alignment()
+            .iter()
+            .any(|sample| (sample.station_m - station_m).abs() <= policy().station_bound_m));
+    }
+    for accepted_sample in accepted_arc_samples {
+        assert!(curved_road.alignment().iter().any(|sample| {
+            (sample.station_m - accepted_sample.station_m).abs() <= policy().station_bound_m
+        }));
+    }
     assert_shared_component_trace(&snapshot, "straight", "lane-1");
     assert_shared_component_trace(&snapshot, "curved", "lane-1");
 
@@ -293,6 +365,244 @@ fn variable_width_add_drop_and_right_turn_pocket_use_general_component_lifecycle
 }
 
 #[test]
+fn non_grid_aligned_lifecycle_knots_are_preserved_in_shared_station_grid() {
+    let station_range = range(200.0);
+    let profile = width_profile(
+        station_range,
+        &[
+            (0.0, 0.0),
+            (23.4, 0.0),
+            (41.7, 3.25),
+            (87.3, 3.25),
+            (103.6, 0.0),
+            (200.0, 0.0),
+        ],
+    );
+    let lane_id = ComponentId::new("lane-irregular-pocket").expect("lane id");
+    let cross_section = CrossSection::new(
+        station_range,
+        vec![
+            CrossSectionComponent::traffic_lane(lane_id.as_str(), profile.clone())
+                .expect("irregular lifecycle lane"),
+        ],
+        &policy(),
+    )
+    .expect("irregular lifecycle cross-section");
+    let alignment = Alignment::line(Point2::new(0.0, 0.0), Point2::new(200.0, 0.0), &policy())
+        .expect("irregular lifecycle alignment");
+    let mut network = RoadNetwork::new();
+    network
+        .add_road(road("irregular-pocket", alignment, cross_section))
+        .expect("irregular lifecycle road");
+
+    let snapshot = DerivedEngineeringSnapshot::derive(&network, Point2::new(0.0, 0.0), &policy())
+        .expect("irregular lifecycle snapshot");
+    let derived = component(&snapshot, "irregular-pocket", lane_id.as_str());
+    let tolerance = policy().station_bound_m;
+    for (station_m, expected_width) in profile
+        .knots()
+        .iter()
+        .map(|knot| (knot.station_m, knot.width_m))
+    {
+        let sample = derived
+            .samples()
+            .iter()
+            .find(|sample| (sample.station_m() - station_m).abs() <= tolerance)
+            .unwrap_or_else(|| panic!("missing authored station {station_m}"));
+        assert_eq!(sample.station_m(), station_m);
+        assert_eq!(sample.width_m(), expected_width);
+        assert_eq!(
+            sample.width_m(),
+            profile
+                .width_at(station_m, &policy())
+                .expect("profile knot width")
+        );
+    }
+    assert!(derived
+        .samples()
+        .iter()
+        .any(|sample| (sample.station_m() - 23.4).abs() <= tolerance));
+    assert!(derived
+        .samples()
+        .iter()
+        .any(|sample| (sample.station_m() - 41.7).abs() <= tolerance));
+    assert!(derived
+        .samples()
+        .iter()
+        .any(|sample| (sample.station_m() - 87.3).abs() <= tolerance));
+    assert!(derived
+        .samples()
+        .iter()
+        .any(|sample| (sample.station_m() - 103.6).abs() <= tolerance));
+
+    let first_positive_strip = derived
+        .strips()
+        .iter()
+        .min_by(|left, right| {
+            left.station_start_m()
+                .partial_cmp(&right.station_start_m())
+                .expect("finite strip station")
+        })
+        .expect("positive lifecycle strips");
+    let last_positive_strip = derived
+        .strips()
+        .iter()
+        .max_by(|left, right| {
+            left.station_end_m()
+                .partial_cmp(&right.station_end_m())
+                .expect("finite strip station")
+        })
+        .expect("positive lifecycle strips");
+    assert_eq!(first_positive_strip.station_start_m(), 23.4);
+    assert_eq!(last_positive_strip.station_end_m(), 103.6);
+    assert!(derived
+        .strips()
+        .iter()
+        .all(|strip| strip.station_start_m() + tolerance >= 23.4));
+    assert!(derived
+        .strips()
+        .iter()
+        .all(|strip| strip.station_end_m() - tolerance <= 103.6));
+    assert_eq!(
+        derived
+            .samples()
+            .iter()
+            .find(|sample| (sample.station_m() - 87.3).abs() <= tolerance)
+            .expect("storage end sample")
+            .width_m(),
+        3.25
+    );
+    assert_eq!(
+        derived
+            .samples()
+            .iter()
+            .find(|sample| (sample.station_m() - 103.6).abs() <= tolerance)
+            .expect("drop sample")
+            .width_m(),
+        0.0
+    );
+    snapshot
+        .validate(&policy())
+        .expect("valid irregular snapshot");
+    assert_shared_component_trace(&snapshot, "irregular-pocket", lane_id.as_str());
+    let rebuilt = DerivedEngineeringSnapshot::derive(&network, Point2::new(0.0, 0.0), &policy())
+        .expect("rebuilt irregular lifecycle snapshot");
+    assert_eq!(snapshot, rebuilt);
+}
+
+#[test]
+fn non_grid_aligned_slope_changes_and_shared_samples_match_canonical_state() {
+    let station_range = range(120.0);
+    let profile = width_profile(
+        station_range,
+        &[(0.0, 3.0), (37.3, 5.0), (63.8, 4.0), (120.0, 4.0)],
+    );
+    let cross_section = CrossSection::new(
+        station_range,
+        vec![
+            CrossSectionComponent::traffic_lane("lane-slope", profile.clone())
+                .expect("slope-change lane"),
+        ],
+        &policy(),
+    )
+    .expect("slope-change cross-section");
+    let alignment = Alignment::line(Point2::new(10.0, -4.0), Point2::new(130.0, -4.0), &policy())
+        .expect("slope-change alignment");
+    let mut network = RoadNetwork::new();
+    network
+        .add_road(road("slope-change", alignment, cross_section))
+        .expect("slope-change road");
+    let snapshot = DerivedEngineeringSnapshot::derive(&network, Point2::new(10.0, -4.0), &policy())
+        .expect("slope-change snapshot");
+    let derived = component(&snapshot, "slope-change", "lane-slope");
+    for knot in profile.knots() {
+        let sample = derived
+            .samples()
+            .iter()
+            .find(|sample| (sample.station_m() - knot.station_m).abs() <= policy().station_bound_m)
+            .expect("slope knot in shared grid");
+        assert_eq!(sample.width_m(), knot.width_m);
+    }
+    assert!(snapshot.roads()[0].alignment().len() > profile.knots().len());
+    assert_shared_component_trace(&snapshot, "slope-change", "lane-slope");
+}
+
+#[test]
+fn every_shared_component_sample_matches_canonical_alignment_and_profile() {
+    let station_range = range(120.0);
+    let profile = width_profile(
+        station_range,
+        &[(0.0, 2.5), (37.3, 5.0), (63.8, 4.0), (120.0, 4.0)],
+    );
+    let cross_section = CrossSection::new(
+        station_range,
+        vec![
+            CrossSectionComponent::traffic_lane("lane-invariant", profile).expect("invariant lane"),
+        ],
+        &policy(),
+    )
+    .expect("invariant cross-section");
+    let alignment = Alignment::line(Point2::new(25.0, 40.0), Point2::new(145.0, 40.0), &policy())
+        .expect("invariant alignment");
+    let mut network = RoadNetwork::new();
+    network
+        .add_road(road("invariant", alignment, cross_section))
+        .expect("invariant road");
+    let snapshot = DerivedEngineeringSnapshot::derive(&network, Point2::new(25.0, 40.0), &policy())
+        .expect("invariant snapshot");
+    let source = network
+        .road(&RoadId::new("invariant").expect("road id"))
+        .expect("source road");
+    let derived_road = &snapshot.roads()[0];
+    for derived_component in derived_road.components() {
+        for sample in derived_component.samples() {
+            let source_point = source
+                .alignment()
+                .point_at(sample.station_m(), &policy())
+                .expect("source point");
+            let source_normal = source
+                .alignment()
+                .normal_at(sample.station_m(), &policy())
+                .expect("source normal");
+            let states = source
+                .cross_section()
+                .states_at(sample.station_m(), &policy())
+                .expect("source states");
+            let total_width: f64 = states.iter().map(|state| state.width_m).sum();
+            let component_index = states
+                .iter()
+                .position(|state| state.id == *derived_component.component_id())
+                .expect("component index");
+            assert_eq!(sample.width_m(), states[component_index].width_m);
+            let lateral_before: f64 = states[..component_index]
+                .iter()
+                .map(|state| state.width_m)
+                .sum();
+            let expected_left =
+                source_point + source_normal * (-total_width / 2.0 + lateral_before);
+            let expected_right = expected_left + source_normal * sample.width_m();
+            assert_eq!(
+                derived_road
+                    .alignment()
+                    .iter()
+                    .find(|alignment_sample| { alignment_sample.station_m == sample.station_m() })
+                    .expect("shared alignment sample")
+                    .point,
+                source_point
+            );
+            assert!(
+                sample.left_boundary().distance_to(expected_left)
+                    <= policy().coordinate_coincidence_m
+            );
+            assert!(
+                sample.right_boundary().distance_to(expected_right)
+                    <= policy().coordinate_coincidence_m
+            );
+        }
+    }
+}
+
+#[test]
 fn t_four_leg_and_skewed_junctions_trace_accepted_r1b_geometry() {
     let mut t_network = RoadNetwork::new();
     t_network
@@ -365,6 +675,121 @@ fn t_four_leg_and_skewed_junctions_trace_accepted_r1b_geometry() {
         .expect("skew stem");
     let skew_id = create_junction(&mut skew_network, "skew-main", "skew-stem", "j-skew");
     assert_junction_trace(&skew_network, &skew_id);
+}
+
+#[test]
+fn lane_connection_refs_are_junction_scoped_when_geometry_is_deferred() {
+    let mut network = RoadNetwork::new();
+    network
+        .add_road(line_road(
+            "j1-main",
+            Point2::new(-100.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[3.5],
+        ))
+        .expect("J1 main");
+    network
+        .add_road(line_road(
+            "j1-stem",
+            Point2::new(0.0, 0.0),
+            Point2::new(0.0, 100.0),
+            &[3.5],
+        ))
+        .expect("J1 stem");
+    network
+        .add_road(line_road(
+            "j2-main",
+            Point2::new(900.0, 0.0),
+            Point2::new(1100.0, 0.0),
+            &[3.5],
+        ))
+        .expect("J2 main");
+    network
+        .add_road(line_road(
+            "j2-stem",
+            Point2::new(1000.0, 0.0),
+            Point2::new(1000.0, 100.0),
+            &[3.5],
+        ))
+        .expect("J2 stem");
+    let j1 = create_junction(&mut network, "j1-main", "j1-stem", "j1");
+    let j2 = create_junction(&mut network, "j2-main", "j2-stem", "j2");
+    install_manual_connection(&mut network, &j1);
+    install_manual_connection(&mut network, &j2);
+
+    let snapshot = DerivedEngineeringSnapshot::derive(&network, Point2::new(0.0, 0.0), &policy())
+        .expect("scoped connection snapshot");
+    snapshot.validate(&policy()).expect("valid scoped snapshot");
+    let manual_id = LaneConnectionId::new("manual-connection").expect("manual id");
+    let j1_ref = SemanticRef::LaneConnection {
+        junction_id: j1.clone(),
+        connection_id: manual_id.clone(),
+    };
+    let j2_ref = SemanticRef::LaneConnection {
+        junction_id: j2.clone(),
+        connection_id: manual_id,
+    };
+    assert_ne!(j1_ref, j2_ref);
+    let j1_derived = snapshot
+        .junctions()
+        .iter()
+        .find(|junction| junction.id() == &j1)
+        .expect("derived J1");
+    let j2_derived = snapshot
+        .junctions()
+        .iter()
+        .find(|junction| junction.id() == &j2)
+        .expect("derived J2");
+    assert_eq!(j1_derived.lane_connections().len(), 1);
+    assert_eq!(j2_derived.lane_connections().len(), 1);
+    assert_eq!(j1_derived.lane_connections()[0].semantic_ref(), &j1_ref);
+    assert_eq!(j2_derived.lane_connections()[0].semantic_ref(), &j2_ref);
+
+    let two_d = derive_diagnostic_2d(&snapshot).expect("scoped 2D");
+    let three_d = derive_diagnostic_3d(&snapshot).expect("scoped 3D");
+    let two_d_refs: HashSet<SemanticRef> = two_d
+        .primitives()
+        .iter()
+        .map(|primitive| primitive.semantic_ref().clone())
+        .collect();
+    let three_d_refs: HashSet<SemanticRef> = three_d
+        .meshes()
+        .iter()
+        .map(|mesh| mesh.semantic_ref().clone())
+        .collect();
+    assert_eq!(two_d_refs, three_d_refs);
+    // F-03 deliberately defers connection-path geometry, so neither adapter
+    // fabricates a selectable zero-length primitive.
+    assert!(!two_d.contains_semantic_ref(&j1_ref));
+    assert!(!two_d.contains_semantic_ref(&j2_ref));
+    assert!(!three_d.contains_semantic_ref(&j1_ref));
+    assert!(!three_d.contains_semantic_ref(&j2_ref));
+
+    let scoped_refs: HashSet<SemanticRef> = snapshot
+        .junctions()
+        .iter()
+        .flat_map(|junction| {
+            junction
+                .lane_connections()
+                .iter()
+                .map(|connection| connection.semantic_ref().clone())
+        })
+        .collect();
+    assert!(scoped_refs.contains(&j1_ref));
+    assert!(scoped_refs.contains(&j2_ref));
+    assert_eq!(scoped_refs.len(), 2);
+    assert!(j1_derived
+        .lane_connections()
+        .iter()
+        .all(|connection| connection.semantic_ref() != &j2_ref));
+    assert!(j2_derived
+        .lane_connections()
+        .iter()
+        .all(|connection| connection.semantic_ref() != &j1_ref));
+
+    let rebuilt = DerivedEngineeringSnapshot::derive(&network, Point2::new(0.0, 0.0), &policy())
+        .expect("rebuilt scoped snapshot");
+    assert_eq!(snapshot, rebuilt);
 }
 
 #[test]

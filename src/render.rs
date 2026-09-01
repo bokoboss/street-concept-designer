@@ -14,7 +14,7 @@ use crate::math::Point2;
 use crate::policy::TolerancePolicy;
 
 /// Schema version for the owned R1C shared snapshot contract.
-pub const SNAPSHOT_SCHEMA_VERSION: u32 = 1;
+pub const SNAPSHOT_SCHEMA_VERSION: u32 = 2;
 
 /// Named diagnostic tolerance for round-tripping small local coordinates
 /// through a float32 display buffer.  It is not a canonical engineering
@@ -40,8 +40,13 @@ pub enum SemanticRef {
     Junction(JunctionId),
     /// A first-class junction corner semantic object.
     Corner(CornerId),
-    /// A first-class lane-to-lane movement connection.
-    LaneConnection(LaneConnectionId),
+    /// A first-class lane-to-lane movement connection scoped by its junction.
+    LaneConnection {
+        /// Owning junction identity.
+        junction_id: JunctionId,
+        /// Connection identity within that junction.
+        connection_id: LaneConnectionId,
+    },
 }
 
 /// Role of a renderer-neutral diagnostic primitive.
@@ -55,8 +60,6 @@ pub enum PrimitiveRole {
     JunctionSurface,
     /// Accepted R1B corner arc diagnostic curve.
     CornerCurve,
-    /// Optional guide for an accepted lane connection.
-    LaneConnectionGuide,
 }
 
 /// Deterministic project-space XY extents of a shared snapshot.
@@ -101,6 +104,7 @@ impl Extents2 {
 pub struct SnapshotMetadata {
     schema_version: u32,
     render_origin: Point2,
+    coordinate_coincidence_m: f64,
 }
 
 impl SnapshotMetadata {
@@ -112,6 +116,11 @@ impl SnapshotMetadata {
     /// Explicit project-space origin used for renderer-local conversion.
     pub fn render_origin(&self) -> Point2 {
         self.render_origin
+    }
+
+    /// Centralized f64 coincidence tolerance used for emitted polylines.
+    pub fn coordinate_coincidence_m(&self) -> f64 {
+        self.coordinate_coincidence_m
     }
 }
 
@@ -153,10 +162,22 @@ impl DerivedComponentSample {
 /// are intentionally not emitted.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DerivedComponentStrip {
+    station_start_m: f64,
+    station_end_m: f64,
     vertices: Vec<Point2>,
 }
 
 impl DerivedComponentStrip {
+    /// First shared station represented by this strip interval.
+    pub fn station_start_m(&self) -> f64 {
+        self.station_start_m
+    }
+
+    /// Last shared station represented by this strip interval.
+    pub fn station_end_m(&self) -> f64 {
+        self.station_end_m
+    }
+
     /// Counter-clockwise project-space strip vertices.
     pub fn vertices(&self) -> &[Point2] {
         &self.vertices
@@ -244,22 +265,22 @@ impl DerivedCorner {
     }
 }
 
-/// Shared optional lane-connection guide geometry.
+/// Shared semantic lane-connection reference without a fabricated movement path.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DerivedLaneConnection {
-    id: LaneConnectionId,
-    points: Vec<Point2>,
+    semantic_ref: SemanticRef,
+    connection_id: LaneConnectionId,
 }
 
 impl DerivedLaneConnection {
     /// Stable lane-connection identity.
     pub fn id(&self) -> &LaneConnectionId {
-        &self.id
+        &self.connection_id
     }
 
-    /// Deterministic guide points in project coordinates.
-    pub fn points(&self) -> &[Point2] {
-        &self.points
+    /// Junction-scoped semantic identity for this connection.
+    pub fn semantic_ref(&self) -> &SemanticRef {
+        &self.semantic_ref
     }
 }
 
@@ -288,7 +309,8 @@ impl DerivedJunction {
         &self.corners
     }
 
-    /// Optional active lane-connection guides.
+    /// Junction-scoped lane-connection references whose movement geometry is
+    /// intentionally deferred until a non-arbitrary diagnostic path is specified.
     pub fn lane_connections(&self) -> &[DerivedLaneConnection] {
         &self.lane_connections
     }
@@ -359,25 +381,16 @@ impl DerivedEngineeringSnapshot {
             let lane_connections = junction
                 .lane_connections()
                 .iter()
-                .filter_map(|connection| {
-                    let from = junction.approach(connection.from_approach_id())?;
-                    let to = junction.approach(connection.to_approach_id())?;
-                    let points = vec![from.center(), junction.candidate().point(), to.center()];
-                    if points.iter().all(|point| point.is_finite()) {
-                        Some(Ok(DerivedLaneConnection {
-                            id: connection.id().clone(),
-                            points,
-                        }))
-                    } else {
-                        Some(Err(KernelError::NonFiniteResult {
-                            operation: "lane connection guide",
-                        }))
-                    }
+                .map(|connection| {
+                    Ok(DerivedLaneConnection {
+                        semantic_ref: SemanticRef::LaneConnection {
+                            junction_id: junction.id().clone(),
+                            connection_id: connection.id().clone(),
+                        },
+                        connection_id: connection.id().clone(),
+                    })
                 })
                 .collect::<Result<Vec<_>, KernelError>>()?;
-            for connection in &lane_connections {
-                add_points(&mut extents, &connection.points)?;
-            }
 
             junctions.push(DerivedJunction {
                 id: junction.id().clone(),
@@ -391,6 +404,7 @@ impl DerivedEngineeringSnapshot {
             metadata: SnapshotMetadata {
                 schema_version: SNAPSHOT_SCHEMA_VERSION,
                 render_origin,
+                coordinate_coincidence_m: policy.coordinate_coincidence_m,
             },
             project_extents: extents.finish(),
             roads,
@@ -443,6 +457,8 @@ impl DerivedEngineeringSnapshot {
         policy.validate()?;
         if self.metadata.schema_version != SNAPSHOT_SCHEMA_VERSION
             || !self.metadata.render_origin.is_finite()
+            || !self.metadata.coordinate_coincidence_m.is_finite()
+            || self.metadata.coordinate_coincidence_m <= 0.0
             || !self.project_extents.is_finite()
         {
             return Err(KernelError::InvalidParameter {
@@ -471,6 +487,12 @@ impl DerivedEngineeringSnapshot {
                     return Err(KernelError::InvalidSurface);
                 }
                 for strip in &component.strips {
+                    if !strip.station_start_m.is_finite()
+                        || !strip.station_end_m.is_finite()
+                        || strip.station_end_m <= strip.station_start_m
+                    {
+                        return Err(KernelError::InvalidSurface);
+                    }
                     validate_polygon(&strip.vertices, policy)?;
                 }
             }
@@ -478,10 +500,7 @@ impl DerivedEngineeringSnapshot {
         for junction in &self.junctions {
             validate_polygon(&junction.surface, policy)?;
             for corner in &junction.corners {
-                validate_polyline(&corner.points)?;
-            }
-            for connection in &junction.lane_connections {
-                validate_polyline(&connection.points)?;
+                validate_polyline(&corner.points, self.metadata.coordinate_coincidence_m)?;
             }
         }
         Ok(())
@@ -569,6 +588,7 @@ impl DiagnosticPrimitive2D {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Diagnostic2D {
     render_origin: Point2,
+    line_tolerance_m: f64,
     primitives: Vec<DiagnosticPrimitive2D>,
 }
 
@@ -606,13 +626,18 @@ impl Diagnostic2D {
                 field: "2D render origin",
             });
         }
+        if !self.line_tolerance_m.is_finite() || self.line_tolerance_m <= 0.0 {
+            return Err(KernelError::InvalidParameter {
+                field: "2D line tolerance",
+            });
+        }
         for primitive in &self.primitives {
             match primitive {
                 DiagnosticPrimitive2D::Polygon(polygon) => {
                     validate_polygon(&polygon.vertices, policy)?;
                 }
                 DiagnosticPrimitive2D::Polyline(polyline) => {
-                    validate_polyline(&polyline.points)?;
+                    validate_polyline(&polyline.points, self.line_tolerance_m)?;
                 }
             }
         }
@@ -707,6 +732,15 @@ impl MeshPrimitive3D {
                 if self.positions.len() < 2 || self.indices.len() < 2 {
                     return Err(KernelError::InvalidSurface);
                 }
+                if !self.indices.windows(2).any(|pair| {
+                    let first = self.positions[pair[0] as usize];
+                    let second = self.positions[pair[1] as usize];
+                    let distance =
+                        f64::from(second[0] - first[0]).hypot(f64::from(second[1] - first[1]));
+                    distance.is_finite() && distance > FLOAT32_LOCAL_COORDINATE_TOLERANCE_M
+                }) {
+                    return Err(KernelError::InvalidSurface);
+                }
             }
         }
         Ok(())
@@ -773,6 +807,7 @@ pub fn derive_diagnostic_2d(
             .map(|sample| localize(sample.point, origin))
             .collect::<Result<_, _>>()?;
         if alignment.len() >= 2 {
+            validate_polyline(&alignment, snapshot.metadata.coordinate_coincidence_m)?;
             primitives.push(DiagnosticPrimitive2D::Polyline(Polyline2D {
                 semantic_ref: SemanticRef::Road(road.id().clone()),
                 role: PrimitiveRole::RoadAlignment,
@@ -801,22 +836,18 @@ pub fn derive_diagnostic_2d(
             vertices: localize_points(junction.surface(), origin)?,
         }));
         for corner in junction.corners() {
+            let points = localize_points(corner.points(), origin)?;
+            validate_polyline(&points, snapshot.metadata.coordinate_coincidence_m)?;
             primitives.push(DiagnosticPrimitive2D::Polyline(Polyline2D {
                 semantic_ref: SemanticRef::Corner(corner.id().clone()),
                 role: PrimitiveRole::CornerCurve,
-                points: localize_points(corner.points(), origin)?,
-            }));
-        }
-        for connection in junction.lane_connections() {
-            primitives.push(DiagnosticPrimitive2D::Polyline(Polyline2D {
-                semantic_ref: SemanticRef::LaneConnection(connection.id().clone()),
-                role: PrimitiveRole::LaneConnectionGuide,
-                points: localize_points(connection.points(), origin)?,
+                points,
             }));
         }
     }
     Ok(Diagnostic2D {
         render_origin: origin,
+        line_tolerance_m: snapshot.metadata.coordinate_coincidence_m,
         primitives,
     })
 }
@@ -859,17 +890,11 @@ pub fn derive_diagnostic_3d(
             origin,
         )?);
         for corner in junction.corners() {
+            let points = localize_points(corner.points(), origin)?;
             meshes.push(line_mesh(
                 SemanticRef::Corner(corner.id().clone()),
                 PrimitiveRole::CornerCurve,
-                &localize_points(corner.points(), origin)?,
-            )?);
-        }
-        for connection in junction.lane_connections() {
-            meshes.push(line_mesh(
-                SemanticRef::LaneConnection(connection.id().clone()),
-                PrimitiveRole::LaneConnectionGuide,
-                &localize_points(connection.points(), origin)?,
+                &points,
             )?);
         }
     }
@@ -887,7 +912,18 @@ fn derive_road(
     policy: &TolerancePolicy,
     extents: &mut ExtentAccumulator,
 ) -> Result<DerivedRoad, KernelError> {
-    let alignment = road.alignment().sample(options, policy)?;
+    let station_grid = shared_station_grid(road, options, policy)?;
+    let alignment = station_grid
+        .into_iter()
+        .map(|station_m| {
+            Ok(SamplePoint {
+                station_m,
+                point: road.alignment().point_at(station_m, policy)?,
+                tangent: road.alignment().tangent_at(station_m, policy)?,
+                normal: road.alignment().normal_at(station_m, policy)?,
+            })
+        })
+        .collect::<Result<Vec<_>, KernelError>>()?;
     if alignment.len() < 2 {
         return Err(KernelError::InvalidLength {
             operation: "shared road derivation",
@@ -960,6 +996,75 @@ fn derive_road(
     })
 }
 
+#[derive(Debug, Clone, Copy)]
+struct StationCandidate {
+    station_m: f64,
+    authored_width_knot: bool,
+}
+
+fn shared_station_grid(
+    road: &crate::junction::Road,
+    options: SamplingOptions,
+    policy: &TolerancePolicy,
+) -> Result<Vec<f64>, KernelError> {
+    let alignment_samples = road.alignment().sample(options, policy)?;
+    let mut candidates = alignment_samples
+        .into_iter()
+        .map(|sample| StationCandidate {
+            station_m: sample.station_m,
+            authored_width_knot: false,
+        })
+        .collect::<Vec<_>>();
+    for component in road.cross_section().components() {
+        candidates.extend(
+            component
+                .width_profile()
+                .knots()
+                .iter()
+                .map(|knot| StationCandidate {
+                    station_m: knot.station_m,
+                    authored_width_knot: true,
+                }),
+        );
+    }
+    if candidates
+        .iter()
+        .any(|candidate| !candidate.station_m.is_finite())
+    {
+        return Err(KernelError::NonFiniteResult {
+            operation: "shared station grid",
+        });
+    }
+    candidates.sort_by(|left, right| {
+        left.station_m
+            .partial_cmp(&right.station_m)
+            .expect("finite station candidates")
+            .then_with(|| right.authored_width_knot.cmp(&left.authored_width_knot))
+    });
+
+    let mut merged = Vec::with_capacity(candidates.len());
+    for candidate in candidates {
+        let Some(last) = merged.last_mut() else {
+            merged.push(candidate);
+            continue;
+        };
+        if (candidate.station_m - last.station_m).abs() <= policy.station_bound_m {
+            // Keep the authored station when a sampled alignment station is
+            // within the centralized bound.  The profile knot itself is
+            // never modified or snapped in canonical state.
+            if candidate.authored_width_knot && !last.authored_width_knot {
+                *last = candidate;
+            }
+        } else {
+            merged.push(candidate);
+        }
+    }
+    Ok(merged
+        .into_iter()
+        .map(|candidate| candidate.station_m)
+        .collect())
+}
+
 fn derive_strips(
     samples: &[DerivedComponentSample],
     policy: &TolerancePolicy,
@@ -982,7 +1087,11 @@ fn derive_strips(
         }
         validate_polygon(&vertices, policy)?;
         add_points(extents, &vertices)?;
-        strips.push(DerivedComponentStrip { vertices });
+        strips.push(DerivedComponentStrip {
+            station_start_m: pair[0].station_m,
+            station_end_m: pair[1].station_m,
+            vertices,
+        });
     }
     Ok(strips)
 }
@@ -1113,8 +1222,15 @@ fn validate_local_polygon(vertices: &[Point2]) -> Result<(), KernelError> {
     Ok(())
 }
 
-fn validate_polyline(points: &[Point2]) -> Result<(), KernelError> {
-    if points.len() < 2 || points.iter().any(|point| !point.is_finite()) {
+fn validate_polyline(points: &[Point2], coincidence_m: f64) -> Result<(), KernelError> {
+    if !coincidence_m.is_finite()
+        || coincidence_m <= 0.0
+        || points.len() < 2
+        || points.iter().any(|point| !point.is_finite())
+        || !points
+            .windows(2)
+            .any(|pair| pair[0].distance_to(pair[1]) > coincidence_m)
+    {
         return Err(KernelError::InvalidSurface);
     }
     Ok(())
