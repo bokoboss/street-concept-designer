@@ -6,9 +6,8 @@ This document records the bounded R2B implementation and qualification. The
 working branch is `codex/r2b-persistence-migration`; the PR is intentionally
 unmerged and R2C was not started.
 
-Final hosted CI and PR identifiers are filled in after the qualification PR is
-opened. Until then, the local evidence below is preliminary and does not claim
-hosted CI success.
+The qualification PR is open and intentionally unmerged. Hosted CI results are
+recorded in the CI section after the final workflow runs complete.
 
 ## Execution identity and baseline
 
@@ -20,8 +19,8 @@ hosted CI success.
 | Execution branch | `codex/r2b-persistence-migration` |
 | Remote branch at kickoff | 0 ahead / 0 behind the accepted base |
 | Accepted `main` containment | `bbaa4fe5a57e8b754efd27c0d6f9f1a5821f2031` is an ancestor of `origin/main` |
-| Final HEAD | To be recorded after the qualification commit(s) |
-| PR | To be recorded after push |
+| Implementation HEAD | `8fef27c7c58bc680fa30160bfb6812315eb1d623` |
+| PR | [#24](https://github.com/bokoboss/street-concept-designer/pull/24), open and intentionally unmerged |
 
 Before implementation, the worktree was clean, `origin` was fetched, the
 accepted base was verified, and the branch was checked out from that exact
@@ -346,12 +345,12 @@ Local commands completed so far:
 | Command | Result |
 |---|---|
 | `cargo fmt --all -- --check` | PASS |
-| `cargo check --locked --workspace --all-targets` | PASS with installed GNU fallback linker/toolchain |
-| `cargo clippy --locked --workspace --all-targets --all-features -- -D warnings` | PASS with installed GNU fallback linker/toolchain |
+| `cargo +stable-x86_64-pc-windows-gnu check --locked --workspace --all-targets` | PASS with Rust 1.98.0 and the installed WinLibs GNU linker fallback |
+| `cargo +stable-x86_64-pc-windows-gnu clippy --locked --workspace --all-targets --all-features -- -D warnings` | PASS with Rust 1.98.0 and the installed WinLibs GNU linker fallback |
 | `cargo test --locked --workspace --all-targets --all-features -- --nocapture` | PASS: 83 integration tests after the stale-policy fixture; all existing R1/R2A tests and R2B tests |
 | `cargo test --locked --package street-concept-designer-project-io --test r2b_persistence -- --nocapture` | PASS: 10 R2B tests |
 | `cargo build --locked --package street-concept-designer-kernel --target wasm32-unknown-unknown --release` | PASS with pinned Rust 1.98.0 |
-| `cargo build --locked --package street-concept-designer-project-io --target wasm32-unknown-unknown --release` | PASS with installed GNU fallback host linker |
+| `cargo +stable-x86_64-pc-windows-gnu build --locked --package street-concept-designer-project-io --target wasm32-unknown-unknown --release` | PASS with Rust 1.98.0 and the installed GNU fallback host linker |
 | Workflow v1.5.0 `setup_project.py validate .` | PASS: 8 managed files, 2 project-owned files |
 | Native pinned MSVC test/check | Not runnable locally: no `link.exe`/Windows SDK; hosted Windows job required |
 
@@ -373,9 +372,9 @@ complete in-memory save/load: 851.346 us/op
 clean R1C rebuild after load: 1115.465 us/op
 ```
 
-Platform/toolchain: Windows x86_64, installed GNU Rust fallback, Rust 1.98.0
-toolchain family. This is exploratory evidence, not an SLA. Hosted Linux CI
-will record the authoritative R2B benchmark output.
+Platform/toolchain: Windows x86_64, Rust 1.98.0 GNU fallback with WinLibs
+linker. This is exploratory evidence, not an SLA. Hosted Linux CI will record
+the authoritative R2B benchmark output.
 
 ## CI matrix and gates
 
