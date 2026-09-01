@@ -9,8 +9,8 @@ an XY crossing is not network topology: detection returns an inert
 `JunctionCandidate`, while only an explicit `RoadNetwork::create_junction`
 call creates a first-class `Junction`.
 
-Recommendation at this evidence capture: `PROCEED_TO_R1C` is conditional on
-the required hosted Windows/MSVC and Linux/WASM checks remaining green.  The
+Recommendation at this evidence capture: `PROCEED_TO_R1C`.  The required
+hosted Windows/MSVC, Linux/WASM, and workflow-integrity checks are green.  The
 implementation is intentionally not a claim of standards-grade junction
 design.
 
@@ -21,6 +21,7 @@ design.
 - Implementation verification commit: `3cc7549` (`R1B: add junction geometry
   and topology kernel`); the branch was clean at the accepted base before R1B
   changes.
+- Hosted CI verification SHA: `ded5b2325972490ee4c87d220c7f7f78628db9ac`.
 - Workflow validation: Engineering Development Workflow v1.5.0, validated
   with `setup_project.py validate`; result was `VALIDATION PASS` for the
   managed/project-owned workflow files.
@@ -103,10 +104,8 @@ design.
   headings and rejects mismatches, with a regression test.
 - Maintainability issue fixed: the corner constructor was reshaped around a
   frame value after strict clippy rejected the initial eight-argument helper.
-- Final review decision: `PASS WITH CONDITIONS`; no unresolved material
-  implementation finding remains.  Conditions are the hosted Linux/WASM and
-  pinned Windows/MSVC workflow checks, which cannot be fully reproduced on
-  this host without its CI linker environment.
+- Final review decision: `PASS`; no unresolved material implementation finding
+  remains.  Hosted CI closed the local MSVC-linker evidence gap.
 
 ## Fixture coverage
 
@@ -158,9 +157,10 @@ Local results captured during implementation:
 - GNU native execution: all 24 accepted R1A tests and all 16 R1B tests passed
   (40 integration tests total).
 - Pinned MSVC `cargo check --all-targets`: pass; native test execution was
-  unavailable on this host solely because `link.exe` is not installed.
-- WASM `cargo check --target wasm32-unknown-unknown`: pass.  Hosted release
-  artifact build is covered by the workflow below.
+  unavailable on this host solely because `link.exe` is not installed, and the
+  hosted MSVC test completed successfully.
+- WASM `cargo check --target wasm32-unknown-unknown`: pass; hosted WASM
+  release artifact build completed successfully.
 - Release benchmark (GNU executable on this host; 2,000 iterations): candidate
   detection `314.44 us/op`, T generation `334.95 us/op`, four-leg generation
   `667.80 us/op`, connectivity lookup `20,000 ops in 5.2355 ms`, and
@@ -177,6 +177,11 @@ Local results captured during implementation:
   alignment/lane behavior.
 - Workflow-integrity validation remains pinned to the repository's v1.5.0
   workflow commit.
+- PR #13 hosted checks for SHA `ded5b2325972490ee4c87d220c7f7f78628db9ac`
+  completed successfully: [R1B Linux/WASM run](https://github.com/bokoboss/street-concept-designer/actions/runs/33453810321),
+  [R1B Windows/MSVC run](https://github.com/bokoboss/street-concept-designer/actions/runs/33453810321),
+  [R1A qualification run](https://github.com/bokoboss/street-concept-designer/actions/runs/33453810209),
+  and [workflow-integrity run](https://github.com/bokoboss/street-concept-designer/actions/runs/33453810246).
 
 ## Limitations and explicit non-goals
 
