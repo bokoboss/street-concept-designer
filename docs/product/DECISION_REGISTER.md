@@ -1,6 +1,6 @@
 # Decision Register
 
-Baseline: 2026-08-27
+Baseline: 2026-09-01
 
 ## Purpose
 
