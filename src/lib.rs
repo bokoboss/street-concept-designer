@@ -10,6 +10,7 @@ pub mod error;
 pub mod junction;
 pub mod math;
 pub mod policy;
+pub mod render;
 pub mod station;
 
 pub use alignment::{
@@ -29,6 +30,13 @@ pub use junction::{
 };
 pub use math::{Point2, Vector2};
 pub use policy::TolerancePolicy;
+pub use render::{
+    derive_diagnostic_2d, derive_diagnostic_3d, DerivedComponent, DerivedComponentSample,
+    DerivedComponentStrip, DerivedCorner, DerivedEngineeringSnapshot, DerivedJunction,
+    DerivedLaneConnection, DerivedRoad, Diagnostic2D, Diagnostic3D, DiagnosticPrimitive2D,
+    Extents2, MeshPrimitive3D, MeshTopology, Polygon2D, Polyline2D, PrimitiveRole, SemanticRef,
+    SnapshotMetadata, FLOAT32_LOCAL_COORDINATE_TOLERANCE_M, SNAPSHOT_SCHEMA_VERSION,
+};
 pub use station::StationRange;
 
 /// Minimal scalar ABI probe used only to prove that the safe core can be emitted
