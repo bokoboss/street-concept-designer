@@ -1,0 +1,12 @@
+[package]
+name = "street-concept-designer-project-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+street-concept-designer-kernel = { path = "../.." }
+
+[[bench]]
+name = "r2a_project_core"
+harness = false
