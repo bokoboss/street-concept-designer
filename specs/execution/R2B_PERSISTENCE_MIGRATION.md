@@ -42,6 +42,24 @@ Future packaging may contain:
 
 Do not build ZIP/package logic in R2B.
 
+## Package/dependency boundary
+
+R2B persistence must live above the accepted engineering kernel and project-domain semantics.
+
+Preferred:
+
+```text
+kernel (std-only)
+  ↑
+project-core
+  ↑
+project-io / persistence layer
+```
+
+Do not add serde/serde_json to the engineering kernel merely for convenience.
+
+If persistence is implemented as a module rather than a separate crate, demonstrate equivalent dependency isolation and explain why.
+
 ## Serialization dependency candidate
 
 Preferred candidate:
