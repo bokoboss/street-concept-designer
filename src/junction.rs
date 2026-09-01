@@ -924,6 +924,34 @@ impl RoadNetwork {
         Self::default()
     }
 
+    /// Validate the read-only semantic coherence of the network.
+    ///
+    /// This check deliberately does not require disposable derived geometry to
+    /// be current.  A source-road edit may leave a junction stale while its
+    /// authored intent remains valid and available for later regeneration.
+    pub fn validate(&self, policy: &TolerancePolicy) -> Result<(), KernelError> {
+        policy.validate()?;
+        for (index, road) in self.roads.iter().enumerate() {
+            if self.roads[..index]
+                .iter()
+                .any(|previous| previous.id() == road.id())
+            {
+                return Err(KernelError::DuplicateRoadId);
+            }
+            validate_network_road(road, policy)?;
+        }
+        for (index, junction) in self.junctions.iter().enumerate() {
+            if self.junctions[..index]
+                .iter()
+                .any(|previous| previous.id() == junction.id())
+            {
+                return Err(KernelError::DuplicateJunctionId);
+            }
+            validate_network_junction(junction, self, policy)?;
+        }
+        Ok(())
+    }
+
     /// Add a road without detecting or creating any topology.
     pub fn add_road(&mut self, road: Road) -> Result<(), KernelError> {
         if self.roads.iter().any(|existing| existing.id() == road.id()) {
@@ -1160,6 +1188,196 @@ impl RoadNetwork {
             .ok_or(KernelError::MissingRoad)?;
         Ok((first, second))
     }
+}
+
+fn validate_network_road(road: &Road, policy: &TolerancePolicy) -> Result<(), KernelError> {
+    let station_range = road.station_range();
+    if !station_range.start_m.is_finite()
+        || !station_range.end_m.is_finite()
+        || !road.alignment().length().is_finite()
+        || station_range.length_m() <= policy.minimum_alignment_length_m
+    {
+        return Err(KernelError::InvalidLength {
+            operation: "road station range",
+        });
+    }
+    for station_m in [station_range.start_m, station_range.end_m] {
+        road.alignment().point_at(station_m, policy)?;
+        road.alignment().tangent_at(station_m, policy)?;
+        road.alignment().normal_at(station_m, policy)?;
+    }
+
+    let cross_section = road.cross_section();
+    if cross_section.station_range() != station_range || cross_section.components().is_empty() {
+        return Err(KernelError::ComponentRangeMismatch);
+    }
+    for (index, component) in cross_section.components().iter().enumerate() {
+        let profile = component.width_profile();
+        if profile.station_range() != station_range || profile.knots().len() < 2 {
+            return Err(KernelError::ComponentRangeMismatch);
+        }
+        if cross_section.components()[..index]
+            .iter()
+            .any(|previous| previous.id() == component.id())
+        {
+            return Err(KernelError::DuplicateComponentId);
+        }
+        for knot in profile.knots() {
+            if !knot.station_m.is_finite() || !knot.width_m.is_finite() {
+                return Err(KernelError::NonFiniteInput {
+                    field: "road width profile",
+                });
+            }
+            if knot.width_m < 0.0 {
+                return Err(KernelError::InvalidWidthProfile);
+            }
+        }
+        profile.width_at(station_range.start_m, policy)?;
+        profile.width_at(station_range.end_m, policy)?;
+    }
+
+    for (lane_id, _) in &road.lane_directions {
+        let component = cross_section
+            .components()
+            .iter()
+            .find(|component| component.id() == lane_id)
+            .ok_or(KernelError::MissingLane)?;
+        if component.kind() != ComponentKind::TrafficLane {
+            return Err(KernelError::IncompatibleLaneConnection);
+        }
+    }
+    for (index, (lane_id, _)) in road.lane_directions.iter().enumerate() {
+        if road.lane_directions[..index]
+            .iter()
+            .any(|(previous_id, _)| previous_id == lane_id)
+        {
+            return Err(KernelError::InvalidParameter {
+                field: "road lane directions",
+            });
+        }
+    }
+    Ok(())
+}
+
+fn validate_network_junction(
+    junction: &Junction,
+    network: &RoadNetwork,
+    policy: &TolerancePolicy,
+) -> Result<(), KernelError> {
+    if junction.road_ids.len() != 2 || junction.road_ids[0] == junction.road_ids[1] {
+        return Err(KernelError::InvalidJunctionGeometry);
+    }
+    for road_id in &junction.road_ids {
+        if network.road(road_id).is_none() {
+            return Err(KernelError::MissingRoad);
+        }
+    }
+    if junction.candidate.road_a != junction.road_ids[0]
+        || junction.candidate.road_b != junction.road_ids[1]
+        || !junction.candidate.point.is_finite()
+        || !junction.candidate.station_a_m.is_finite()
+        || !junction.candidate.station_b_m.is_finite()
+    {
+        return Err(KernelError::InvalidJunctionGeometry);
+    }
+    for (index, (_, radius_m)) in junction.authored_corner_radii.iter().enumerate() {
+        if !radius_m.is_finite() || *radius_m <= policy.coordinate_coincidence_m {
+            return Err(KernelError::InvalidParameter {
+                field: "authored corner radius",
+            });
+        }
+        if junction.authored_corner_radii[..index]
+            .iter()
+            .any(|(previous, _)| previous == &junction.authored_corner_radii[index].0)
+        {
+            return Err(KernelError::InvalidCornerId);
+        }
+    }
+    for (index, connection) in junction.authored_lane_connections.iter().enumerate() {
+        if junction.authored_lane_connections[..index]
+            .iter()
+            .any(|previous| previous.id() == connection.id())
+        {
+            return Err(KernelError::DuplicateLaneConnectionId);
+        }
+    }
+
+    if junction.status == JunctionStatus::Stale {
+        if !junction.approaches.is_empty()
+            || !junction.corners.is_empty()
+            || junction.surface.is_some()
+            || !junction.lane_connections.is_empty()
+        {
+            return Err(KernelError::InvalidJunctionGeometry);
+        }
+        return Ok(());
+    }
+
+    if junction.approaches.len() < 3 || junction.surface.is_none() {
+        return Err(KernelError::InvalidJunctionGeometry);
+    }
+    validate_network_approaches(junction, network)?;
+    validate_network_corners(junction)?;
+    junction
+        .surface
+        .as_ref()
+        .expect("non-stale junction surface checked above")
+        .validate(policy)?;
+    if junction.status == JunctionStatus::Fresh {
+        validate_lane_connections(&junction.approaches, &junction.lane_connections, policy)?;
+    } else if !junction.lane_connections.is_empty() {
+        return Err(KernelError::InvalidJunctionGeometry);
+    }
+    Ok(())
+}
+
+fn validate_network_approaches(
+    junction: &Junction,
+    network: &RoadNetwork,
+) -> Result<(), KernelError> {
+    for (index, approach) in junction.approaches.iter().enumerate() {
+        if junction.approaches[..index]
+            .iter()
+            .any(|previous| previous.id() == approach.id())
+            || !junction.road_ids.iter().any(|id| id == approach.road_id())
+            || network.road(approach.road_id()).is_none()
+            || !approach.center().is_finite()
+            || !approach.tangent().is_finite()
+            || !approach.outward_direction().is_finite()
+            || !approach.normal().is_finite()
+        {
+            return Err(KernelError::InvalidJunctionGeometry);
+        }
+        if approach
+            .cross_section_state()
+            .iter()
+            .any(|state| !state.width_m.is_finite() || state.width_m < 0.0)
+        {
+            return Err(KernelError::InvalidJunctionGeometry);
+        }
+    }
+    Ok(())
+}
+
+fn validate_network_corners(junction: &Junction) -> Result<(), KernelError> {
+    for (index, corner) in junction.corners.iter().enumerate() {
+        if junction.corners[..index]
+            .iter()
+            .any(|previous| previous.id() == corner.id())
+            || junction.approach(corner.start_approach_id()).is_none()
+            || junction.approach(corner.end_approach_id()).is_none()
+            || !corner.center().is_finite()
+            || !corner.start_direction.is_finite()
+            || !corner.end_direction.is_finite()
+            || !corner.radius_m().is_finite()
+            || corner.radius_m() <= 0.0
+            || corner.arc_points().len() < 2
+            || corner.arc_points().iter().any(|point| !point.is_finite())
+        {
+            return Err(KernelError::InvalidJunctionGeometry);
+        }
+    }
+    Ok(())
 }
 
 /// Detect one pairwise candidate from the sampled R1A alignment geometry.

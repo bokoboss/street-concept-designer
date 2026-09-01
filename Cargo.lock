@@ -5,3 +5,10 @@ version = 4
 [[package]]
 name = "street-concept-designer-kernel"
 version = "0.1.0"
+
+[[package]]
+name = "street-concept-designer-project-core"
+version = "0.1.0"
+dependencies = [
+ "street-concept-designer-kernel",
+]
