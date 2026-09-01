@@ -3,7 +3,7 @@
 ## Identity
 - Project name: Street Concept Designer
 - Repository URL: https://github.com/bokoboss/street-concept-designer
-- Authoritative local path: not established yet
+- Authoritative local path: `D:\\R&D\\street-concept-designer`
 - Primary branch: `main`
 - Package/application version: pre-implementation / unversioned
 
