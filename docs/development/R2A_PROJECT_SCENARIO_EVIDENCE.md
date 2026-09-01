@@ -2,7 +2,8 @@
 
 ## Disposition
 
-R2A is qualified for the bounded implementation in PR [#21](https://github.com/bokoboss/street-concept-designer/pull/21).
+The independent PR #21 review finding F-01 is closed. R2A authored Scenario-order
+remediation is qualified in PR [#21](https://github.com/bokoboss/street-concept-designer/pull/21).
 The recommendation is `PROCEED_TO_R2B`. R2B persistence, R2C command/history, and R3 UI were not started.
 
 ## Execution identity
@@ -13,11 +14,12 @@ The recommendation is `PROCEED_TO_R2B`. R2B persistence, R2C command/history, an
 | Working directory | `D:\\R&D\\street-concept-designer` |
 | Accepted execution base | `a6fb7ccb27f153d9e8373f8a51b645e0b531784a` |
 | Execution branch | `codex/r2a-project-scenario-core` |
-| Qualification/implementation HEAD | `9989142043ea4d1d43a28cd3a69d1f9fc66d470d` |
+| Previous reviewed HEAD | `ae0e17848361e07a4d1eaa23a942042ea30a9546` |
+| Remediation qualification HEAD | `190d58b758a1de2bc09a71152d6cb458c81fbd33` |
 | PR | [#21](https://github.com/bokoboss/street-concept-designer/pull/21), open and intentionally unmerged |
 | Workflow source | v1.5.0, commit `9e2494616393f0c397f065db274a0ce572206599` |
 
-The branch was created from the accepted base and was 0 commits ahead/behind at kickoff. `git fetch origin` was run before branch selection; `a6fb7ccb27f153d9e8373f8a51b645e0b531784a` was verified as an ancestor of `origin/main`, and the checked-out branch initially resolved exactly to that SHA.
+The original R2A branch was created from the accepted base and was 0 commits ahead/behind at kickoff. The remediation stayed on the same branch and PR as required. The previous reviewed tip was `ae0e17848361e07a4d1eaa23a942042ea30a9546`; the authored-order implementation and regression qualification tip is `190d58b758a1de2bc09a71152d6cb458c81fbd33`.
 
 ## Toolchain
 
@@ -39,7 +41,7 @@ python <workflow-v1.5.0>/scripts/setup_project.py validate .
 VALIDATION PASS (8 managed files, 2 project-owned files)
 ```
 
-The local host has no `link.exe`, so native test execution could not be linked locally. The hosted Windows/MSVC job is the authoritative MSVC test/build result. Local `cargo check --all-targets`, strict Clippy, formatting, and the kernel WASM release build passed.
+The local host has no `link.exe`, so native test and benchmark execution could not be linked locally. The hosted Linux and Windows/MSVC jobs are the authoritative test/build/benchmark results. Local `cargo check --all-targets`, strict Clippy, formatting, and the kernel WASM release build passed.
 
 ## Package and dependency boundary
 
@@ -77,7 +79,7 @@ cargo build --locked --package street-concept-designer-kernel \
 
 `ProjectId` and `ScenarioId` are caller-supplied newtypes. They reject empty values and any Unicode whitespace using the same predicate as the accepted R1 semantic ids. They derive deterministic value equality, ordering, and hashing. IDs are independent of names, paths, timestamps, renderer handles, and random generation.
 
-`ScenarioId` is unique within one `Project`; scenario display names are not keys. Scenarios are stored in lexical `ScenarioId` order so equivalent construction input has deterministic project equality.
+`ScenarioId` is unique within one `Project`; scenario display names are not keys. `ScenarioId` is identity only and does not determine scenario order. `Project.scenarios: Vec<Scenario>` is the canonical authored order, so equal starting state plus equal domain-operation sequence produces equal project state without normalizing differently authored input.
 
 ### Project
 
@@ -92,6 +94,27 @@ scenarios: Vec<Scenario>
 ```
 
 There is no active-scenario tab, selection, camera, viewport, hover, renderer cache, or presentation state in the R2A engineering root. `Project::new` is an intermediate empty shell; `Project::validate` rejects it until a scenario is added. `Project::with_scenario` and `Project::from_scenarios` provide validated construction paths.
+
+### Authored Scenario order and R2B compatibility
+
+The independent review identified F-01: the previous implementation inserted
+scenarios by lexical `ScenarioId` order, which silently destroyed user-authored
+order and conflicted with the R2B requirement to preserve Scenario user order.
+The remediation makes the existing `Vec<Scenario>` order canonical without
+adding a separate order field:
+
+1. `Project::from_scenarios` validates the caller-provided list and preserves
+   its exact order.
+2. `Project::add_scenario` validates uniqueness and the owned network, then
+   appends the new scenario.
+3. `Project::duplicate_scenario` deep-copies the source and inserts the result
+   immediately after the source. Repeating the operation for one source places
+   the newest duplicate immediately after the source, before earlier duplicates.
+4. `Project::validate` checks the existing sequence read-only and never sorts or
+   reorders it.
+
+This leaves R2B enough canonical domain information to round-trip authored
+Scenario order; no persistence, serde, or JSON implementation is part of R2A.
 
 ### Scenario and roles
 
@@ -127,7 +150,9 @@ The duplicate:
 2. deep-clones the source `RoadNetwork` using ordinary `Clone` value semantics;
 3. retains corresponding local `RoadId`, `JunctionId`, `ComponentId`, `CornerId`, and `LaneConnectionId` values;
 4. uses the caller-selected display name, role, and lock state;
-5. inserts deterministically by destination scenario id.
+5. inserts immediately after the source in canonical authored order. If the
+   same source is duplicated repeatedly, each newest duplicate is inserted at
+   that source boundary before older duplicates.
 
 Initial R1C `DerivedEngineeringSnapshot` values are equal when derived with the same render origin and policy because R1C snapshots intentionally do not contain `ScenarioId`. A later network replacement in the duplicate changes only the duplicate; the source remains byte/value-equal to its pre-duplication state.
 
@@ -156,7 +181,7 @@ Reusable integration-test fixture helpers are in `crates/project-core/tests/supp
 
 ## Adversarial and regression fixtures
 
-The 12 R2A integration tests cover:
+The 17 R2A integration tests cover:
 
 - empty and whitespace ProjectId/ScenarioId;
 - project validation with no scenarios;
@@ -170,6 +195,11 @@ The 12 R2A integration tests cover:
 - large coordinates around `1e9` with explicit render origin;
 - stale R1 junction derived state accepted by validation and omitted from a fresh snapshot;
 - repeated duplicate construction/equality and equal validation results;
+- deliberately non-lexical `from_scenarios` order preservation;
+- append-only `add_scenario` order with misleading ids;
+- source-adjacent duplicate placement, including repeated duplicates from one source;
+- validation non-mutation of authored order;
+- equal complete Project state for equivalent insertion/duplication sequences;
 - source/duplicate network isolation;
 - R1C snapshot, 2D diagnostic, and 3D diagnostic derivation from scenario-owned networks;
 - malformed coordinate-context options;
@@ -191,15 +221,20 @@ cargo build --locked --package street-concept-designer-kernel \
 workflow v1.5.0 setup_project.py validate .                  PASS
 ```
 
-Hosted PR qualification for commit `9989142043ea4d1d43a28cd3a69d1f9fc66d470d`:
+The required local native test, explicit project-core test, and benchmark
+commands were also attempted but could not link because this Windows host has
+no `link.exe`. Hosted Linux and Windows/MSVC qualification therefore provide
+the authoritative execution evidence for those commands.
+
+Hosted PR qualification for remediation commit `190d58b758a1de2bc09a71152d6cb458c81fbd33`:
 
 | Workflow | Run / jobs | Result |
 |---|---|---|
-| Engineering Workflow Integrity | [run 33493193058](https://github.com/bokoboss/street-concept-designer/actions/runs/33493193058), job `99809252302` | PASS |
-| R2A Project Core Qualification | [run 33493193295](https://github.com/bokoboss/street-concept-designer/actions/runs/33493193295); Linux job `99809252958`, Windows/MSVC job `99809253179` | PASS |
-| R1A Kernel Qualification regression | [run 33493193202](https://github.com/bokoboss/street-concept-designer/actions/runs/33493193202); jobs `99809253021`, `99809253149` | PASS |
-| R1B Junction Topology Qualification regression | [run 33493193079](https://github.com/bokoboss/street-concept-designer/actions/runs/33493193079); jobs `99809252479`, `99809252719` | PASS |
-| R1C Shared Render Qualification regression | [run 33493193186](https://github.com/bokoboss/street-concept-designer/actions/runs/33493193186); jobs `99809252888`, `99809253222` | PASS |
+| Engineering Workflow Integrity | [run 33497423863](https://github.com/bokoboss/street-concept-designer/actions/runs/33497423863), job `99822718684` | PASS |
+| R2A Project Core Qualification | [run 33497423927](https://github.com/bokoboss/street-concept-designer/actions/runs/33497423927); Linux job `99822718855`, Windows/MSVC job `99822719060` | PASS |
+| R1A Kernel Qualification regression | [run 33497423932](https://github.com/bokoboss/street-concept-designer/actions/runs/33497423932); Linux job `99822719244`, Windows/MSVC job `99822719283` | PASS |
+| R1B Junction Topology Qualification regression | [run 33497423834](https://github.com/bokoboss/street-concept-designer/actions/runs/33497423834); Linux job `99822718836`, Windows/MSVC job `99822718589` | PASS |
+| R1C Shared Render Qualification regression | [run 33497423861](https://github.com/bokoboss/street-concept-designer/actions/runs/33497423861); Linux job `99822718609`, Windows/MSVC job `99822718848` | PASS |
 
 Hosted R2A commands passed on Linux and Windows/MSVC:
 
@@ -215,7 +250,7 @@ cargo build --locked --package street-concept-designer-kernel \
   --target wasm32-unknown-unknown --release                  # Linux/WASM
 ```
 
-The hosted workspace test run passed all 56 accepted R1 tests plus all 12 R2A tests: 68 implementation tests total, with zero failures. The explicit project-core test command passed all 12 R2A tests. The Windows job used pinned `1.98.0-x86_64-pc-windows-msvc`, rustc 1.98.0, and Cargo 1.98.0.
+The hosted workspace test run passed all 56 accepted R1 tests plus all 17 R2A tests: 73 implementation tests total, with zero failures. The explicit project-core test command passed all 17 R2A tests. The Windows job used pinned `1.98.0-x86_64-pc-windows-msvc`, rustc 1.98.0, and Cargo 1.98.0.
 
 ## Benchmark observations
 
@@ -223,11 +258,13 @@ The R2A benchmark is `crates/project-core/benches/r2a_project_core.rs`; it is ex
 
 | Operation | Iterations | Observation |
 |---|---:|---:|
-| Clone representative project + duplicate scenario | 2,000 | 40.69 µs/op |
-| Validate five-scenario project | 2,000 | 30.01 µs/op |
-| Construct/hash project-scoped semantic refs | 20,000 | 55.38 ns/op |
+| Clone representative project + duplicate scenario | 2,000 | 43.18 µs/op |
+| Validate five-scenario project | 2,000 | 31.10 µs/op |
+| Construct/hash project-scoped semantic refs | 20,000 | 57.92 ns/op |
 
-The benchmark completed successfully and showed no R2A architectural blocker. These numbers are machine/run observations only.
+The Linux hosted release benchmark completed successfully and showed no R2A
+architectural blocker. These numbers are machine/run observations only; the
+small change from the previous run is not a blocker.
 
 ## Gate record
 
@@ -235,13 +272,13 @@ The benchmark completed successfully and showed no R2A architectural blocker. Th
 |---|---|---|
 | A-G0 exact base/workflow | PASS | exact base, branch, toolchain, and workflow validation above |
 | A-G1 renderer-independent Project/Scenario root | PASS | `project-core` contains value semantics only; no renderer fields/dependencies |
-| A-G2 stable unique scenario identity | PASS | newtype validation, deterministic id ordering, duplicate-id tests |
+| A-G2 stable unique scenario identity and authored order | PASS | newtype validation, canonical Vec order, non-lexical order and duplicate-id tests |
 | A-G3 lineage-preserving isolated duplication | PASS | P-03, local id assertions, snapshot equality, replacement isolation |
 | A-G4 project-scoped semantic identity | PASS | `ProjectSemanticRef` equality/hash test across same local ref |
 | A-G5 explicit traffic/coordinate context | PASS | `TrafficSide`, string-only `CoordinateContext`, render-origin separation tests |
-| A-G6 deterministic validation | PASS | equal projects produce equal values and validation results |
+| A-G6 deterministic, non-mutating validation | PASS | equal projects produce equal validation results; repeated validation preserves authored order |
 | A-G7 accepted R1 derivation compatibility | PASS | R1C snapshot/2D/3D derivation tests from both scenario networks |
-| A-G8 adversarial identity/isolation coverage | PASS | 12 R2A tests, including stale, lock, large-coordinate, and repeated cases |
+| A-G8 adversarial identity/isolation/order coverage | PASS | 17 R2A tests, including stale, lock, large-coordinate, non-lexical-order, and repeated cases |
 | A-G9 benchmark observation | PASS | release benchmark completed with no blocker |
 | A-G10 no persistence/command/UI scope creep | PASS | dependency/source/CI/scope audit below |
 
