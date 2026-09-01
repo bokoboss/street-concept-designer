@@ -1,0 +1,72 @@
+name: R1B Junction Topology Qualification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-r1b-kernel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run strict lint
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Run native tests and deterministic benchmark targets
+        run: cargo test --locked --all-targets --all-features -- --nocapture
+
+      - name: Run release R1B exploratory benchmarks
+        run: cargo bench --locked --bench r1b_junction -- --nocapture
+
+      - name: Build WASM kernel artifact
+        run: cargo build --locked --target wasm32-unknown-unknown --release
+
+  qualify-r1b-windows-msvc:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install pinned MSVC Rust toolchain
+        shell: pwsh
+        run: rustup toolchain install 1.98.0-x86_64-pc-windows-msvc --profile minimal --component rustfmt --component clippy
+
+      - name: Show Windows/MSVC toolchain
+        shell: pwsh
+        run: |
+          rustup run 1.98.0-x86_64-pc-windows-msvc rustc -vV
+          rustup run 1.98.0-x86_64-pc-windows-msvc cargo -V
+
+      - name: Check formatting with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc fmt --all -- --check
+
+      - name: Run strict lint with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc clippy --locked --all-targets --all-features -- -D warnings
+
+      - name: Check native MSVC target
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc check --locked --all-targets
+
+      - name: Run native MSVC tests
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc test --locked --all-targets --all-features -- --nocapture
+
+      - name: Build native MSVC release artifact
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc build --locked --release

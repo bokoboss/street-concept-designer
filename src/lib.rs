@@ -7,6 +7,7 @@
 pub mod alignment;
 pub mod cross_section;
 pub mod error;
+pub mod junction;
 pub mod math;
 pub mod policy;
 pub mod station;
@@ -20,6 +21,12 @@ pub use cross_section::{
     PiecewiseLinearWidthProfile, WidthKnot,
 };
 pub use error::KernelError;
+pub use junction::{
+    detect_candidate, Approach, ApproachId, ApproachSide, CandidateDisposition, Corner, CornerId,
+    CrossingRelation, CrossingType, Junction, JunctionCandidate, JunctionId, JunctionOptions,
+    JunctionStatus, LaneConnection, LaneConnectionId, LaneConnectivityMode, LaneDirection,
+    Movement, PavementSurface, RegenerationResult, Road, RoadId, RoadNetwork,
+};
 pub use math::{Point2, Vector2};
 pub use policy::TolerancePolicy;
 pub use station::StationRange;
