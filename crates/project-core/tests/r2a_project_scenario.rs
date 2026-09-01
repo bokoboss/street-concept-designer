@@ -16,6 +16,70 @@ use support::{
     non_trivial_existing, non_trivial_network, policy, project_id, scenario_id,
 };
 
+fn simple_scenario(id: &str, name: &str, role: ScenarioRole, locked: bool) -> Scenario {
+    Scenario::new(scenario_id(id), name, role, locked, network_with_one_road())
+        .expect("simple scenario")
+}
+
+fn scenario_ids(project: &Project) -> Vec<String> {
+    project
+        .scenarios()
+        .iter()
+        .map(|scenario| scenario.id().as_str().to_owned())
+        .collect()
+}
+
+fn authored_sequence_project() -> Project {
+    let mut project = Project::new(
+        project_id("project-authored-sequence"),
+        "Authored sequence",
+        TrafficSide::LeftHand,
+        CoordinateContext::empty(),
+    );
+    project
+        .add_scenario(simple_scenario(
+            "scenario-z-existing",
+            "Existing",
+            ScenarioRole::Existing,
+            true,
+        ))
+        .expect("Existing");
+    project
+        .add_scenario(simple_scenario(
+            "scenario-m-alt-b",
+            "Alternative B",
+            ScenarioRole::Alternative,
+            false,
+        ))
+        .expect("Alternative B");
+    project
+        .add_scenario(simple_scenario(
+            "scenario-a-alt-a",
+            "Alternative A",
+            ScenarioRole::Alternative,
+            false,
+        ))
+        .expect("Alternative A");
+    project
+        .duplicate_scenario(
+            &scenario_id("scenario-m-alt-b"),
+            scenario_id("scenario-0-alt-b-copy"),
+            "Alternative B copy",
+            ScenarioRole::Alternative,
+            false,
+        )
+        .expect("duplicate Alternative B");
+    project
+        .add_scenario(simple_scenario(
+            "scenario-y-alt-c",
+            "Alternative C",
+            ScenarioRole::Alternative,
+            false,
+        ))
+        .expect("Alternative C");
+    project
+}
+
 #[test]
 fn ids_are_caller_supplied_stable_and_whitespace_invalid() {
     let project_id = project_id("project-stable");
@@ -134,6 +198,162 @@ fn project_validation_requires_a_scenario_and_is_deterministic() {
     project.validate(&policy()).expect("valid project");
 }
 
+/// R2B must be able to persist this canonical authored Vec order; no
+/// persistence implementation is introduced by this compatibility assertion.
+#[test]
+fn from_scenarios_preserves_deliberately_non_lexical_authored_order() {
+    let project = Project::from_scenarios(
+        project_id("project-authored-order"),
+        "Authored order",
+        TrafficSide::LeftHand,
+        CoordinateContext::empty(),
+        vec![
+            simple_scenario(
+                "scenario-z-existing",
+                "Existing",
+                ScenarioRole::Existing,
+                true,
+            ),
+            simple_scenario(
+                "scenario-m-alt-b",
+                "Alternative B",
+                ScenarioRole::Alternative,
+                false,
+            ),
+            simple_scenario(
+                "scenario-a-alt-a",
+                "Alternative A",
+                ScenarioRole::Alternative,
+                false,
+            ),
+        ],
+    )
+    .expect("authored scenario order");
+
+    assert_eq!(
+        scenario_ids(&project),
+        vec![
+            "scenario-z-existing",
+            "scenario-m-alt-b",
+            "scenario-a-alt-a"
+        ]
+    );
+}
+
+#[test]
+fn add_scenario_appends_to_authored_order() {
+    let mut project = Project::from_scenarios(
+        project_id("project-append-order"),
+        "Append order",
+        TrafficSide::LeftHand,
+        CoordinateContext::empty(),
+        vec![
+            simple_scenario(
+                "scenario-z-existing",
+                "Existing",
+                ScenarioRole::Existing,
+                true,
+            ),
+            simple_scenario(
+                "scenario-a-alt-a",
+                "Alternative A",
+                ScenarioRole::Alternative,
+                false,
+            ),
+        ],
+    )
+    .expect("initial authored order");
+    project
+        .add_scenario(simple_scenario(
+            "scenario-0-alt-b",
+            "Alternative B",
+            ScenarioRole::Alternative,
+            false,
+        ))
+        .expect("append Alternative B");
+
+    assert_eq!(
+        scenario_ids(&project),
+        vec![
+            "scenario-z-existing",
+            "scenario-a-alt-a",
+            "scenario-0-alt-b"
+        ]
+    );
+}
+
+#[test]
+fn duplicate_scenario_inserts_immediately_after_source() {
+    let mut project = Project::from_scenarios(
+        project_id("project-duplicate-order"),
+        "Duplicate order",
+        TrafficSide::LeftHand,
+        CoordinateContext::empty(),
+        vec![
+            simple_scenario(
+                "scenario-z-existing",
+                "Existing",
+                ScenarioRole::Existing,
+                true,
+            ),
+            simple_scenario(
+                "scenario-m-alt-b",
+                "Alternative B",
+                ScenarioRole::Alternative,
+                false,
+            ),
+            simple_scenario(
+                "scenario-a-alt-a",
+                "Alternative A",
+                ScenarioRole::Alternative,
+                false,
+            ),
+        ],
+    )
+    .expect("initial authored order");
+    let source_id = scenario_id("scenario-m-alt-b");
+    project
+        .duplicate_scenario(
+            &source_id,
+            scenario_id("scenario-0-alt-b-copy"),
+            "Alternative B copy",
+            ScenarioRole::Alternative,
+            false,
+        )
+        .expect("first duplicate");
+    assert_eq!(
+        scenario_ids(&project),
+        vec![
+            "scenario-z-existing",
+            "scenario-m-alt-b",
+            "scenario-0-alt-b-copy",
+            "scenario-a-alt-a"
+        ]
+    );
+
+    // Repeating the operation inserts the newest duplicate immediately after
+    // the source, before an earlier duplicate from the same source.
+    project
+        .duplicate_scenario(
+            &source_id,
+            scenario_id("scenario-9-alt-b-copy"),
+            "Alternative B second copy",
+            ScenarioRole::Alternative,
+            false,
+        )
+        .expect("second duplicate");
+    assert_eq!(
+        scenario_ids(&project),
+        vec![
+            "scenario-z-existing",
+            "scenario-m-alt-b",
+            "scenario-9-alt-b-copy",
+            "scenario-0-alt-b-copy",
+            "scenario-a-alt-a"
+        ]
+    );
+}
+
 #[test]
 fn duplicate_scenario_preserves_lineage_and_explicit_duplicate_policy() {
     let mut project = non_trivial_existing();
@@ -158,6 +378,10 @@ fn duplicate_scenario_preserves_lineage_and_explicit_duplicate_policy() {
 
     assert_eq!(existing, &source_before);
     assert_ne!(existing.id(), alternative.id());
+    assert_eq!(
+        scenario_ids(&project),
+        vec!["scenario-existing", "scenario-alt-a"]
+    );
     assert_eq!(alternative.name(), "Alternative A");
     assert_eq!(alternative.role(), ScenarioRole::Alternative);
     assert!(!alternative.is_locked());
@@ -192,6 +416,30 @@ fn duplicate_scenario_preserves_lineage_and_explicit_duplicate_policy() {
     assert_eq!(
         existing.network().junctions()[0].lane_connections(),
         alternative.network().junctions()[0].lane_connections()
+    );
+    assert_eq!(
+        existing.network().junctions()[0]
+            .corners()
+            .iter()
+            .map(|corner| corner.id().clone())
+            .collect::<Vec<_>>(),
+        alternative.network().junctions()[0]
+            .corners()
+            .iter()
+            .map(|corner| corner.id().clone())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        existing.network().junctions()[0]
+            .lane_connections()
+            .iter()
+            .map(|connection| connection.id().clone())
+            .collect::<Vec<_>>(),
+        alternative.network().junctions()[0]
+            .lane_connections()
+            .iter()
+            .map(|connection| connection.id().clone())
+            .collect::<Vec<_>>()
     );
     project
         .validate(&policy())
@@ -437,6 +685,38 @@ fn stale_r1_derived_state_remains_valid_and_is_not_rendered_as_current_truth() {
     let snapshot = DerivedEngineeringSnapshot::derive(&network, Point2::new(0.0, 0.0), &policy)
         .expect("stale-safe snapshot");
     assert!(snapshot.junctions().is_empty());
+}
+
+#[test]
+fn validation_never_reorders_authored_scenarios() {
+    let project = authored_sequence_project();
+    let expected_ids = scenario_ids(&project);
+    let expected_project = project.clone();
+
+    for _ in 0..3 {
+        project.validate(&policy()).expect("valid authored order");
+        assert_eq!(scenario_ids(&project), expected_ids);
+    }
+    assert_eq!(project, expected_project);
+}
+
+#[test]
+fn equivalent_authored_operation_sequences_produce_equal_project_order_and_state() {
+    let first = authored_sequence_project();
+    let second = authored_sequence_project();
+
+    assert_eq!(first, second);
+    assert_eq!(
+        scenario_ids(&first),
+        vec![
+            "scenario-z-existing",
+            "scenario-m-alt-b",
+            "scenario-0-alt-b-copy",
+            "scenario-a-alt-a",
+            "scenario-y-alt-c"
+        ]
+    );
+    assert_eq!(first.validate(&policy()), second.validate(&policy()));
 }
 
 #[test]

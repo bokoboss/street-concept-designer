@@ -447,7 +447,8 @@ impl Project {
         Ok(project)
     }
 
-    /// Construct and validate a project from an authored scenario list.
+    /// Construct and validate a project from an authored scenario list,
+    /// retaining the caller-provided scenario order.
     pub fn from_scenarios(
         id: ProjectId,
         name: impl Into<String>,
@@ -483,7 +484,7 @@ impl Project {
         &self.coordinate_context
     }
 
-    /// Scenarios in deterministic lexical ScenarioId order.
+    /// Scenarios in canonical authored order.
     pub fn scenarios(&self) -> &[Scenario] {
         &self.scenarios
     }
@@ -513,7 +514,7 @@ impl Project {
         Ok(())
     }
 
-    /// Add a unique scenario and retain deterministic id ordering.
+    /// Append a unique scenario to the current authored order.
     pub fn add_scenario(&mut self, scenario: Scenario) -> Result<(), ProjectError> {
         if self
             .scenarios
@@ -523,11 +524,7 @@ impl Project {
             return Err(ProjectError::DuplicateScenarioId);
         }
         scenario.validate(&TolerancePolicy::default())?;
-        let index = self
-            .scenarios
-            .binary_search_by(|existing| existing.id().cmp(scenario.id()))
-            .unwrap_or_else(|index| index);
-        self.scenarios.insert(index, scenario);
+        self.scenarios.push(scenario);
         Ok(())
     }
 
@@ -579,6 +576,9 @@ impl Project {
 
     /// Duplicate a scenario with explicit new identity, display metadata,
     /// role, and lock policy. The source's local semantic ids are retained.
+    /// The duplicate is inserted immediately after its source in authored
+    /// order. Repeating the operation for one source places the newest
+    /// duplicate immediately after that source, before earlier duplicates.
     pub fn duplicate_scenario(
         &mut self,
         source_id: &ScenarioId,
@@ -594,11 +594,14 @@ impl Project {
         {
             return Err(ProjectError::DuplicateScenarioId);
         }
-        let source = self
-            .scenario(source_id)
+        let source_index = self
+            .scenarios
+            .iter()
+            .position(|scenario| scenario.id() == source_id)
             .ok_or(ProjectError::MissingScenario)?;
-        let duplicate = source.duplicate(new_id.clone(), name, role, locked);
-        self.add_scenario(duplicate)?;
+        let duplicate = self.scenarios[source_index].duplicate(new_id.clone(), name, role, locked);
+        duplicate.validate(&TolerancePolicy::default())?;
+        self.scenarios.insert(source_index + 1, duplicate);
         Ok(new_id)
     }
 
