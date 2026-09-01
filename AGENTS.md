@@ -8,7 +8,7 @@ Build Street Concept Designer as a clean-slate map-first 2D/3D engineering conce
 
 ## Development workflow
 
-This project adopts `bokoboss/engineering-development-workflow` v1.4.1. Read `docs/development/ENGINEERING_WORKFLOW.md` and follow the upstream normative workflow/skills for bounded execution, model routing, scrutiny, debugging, evidence, and acceptance.
+This project adopts `bokoboss/engineering-development-workflow` v1.5.0. Read `docs/development/ENGINEERING_WORKFLOW.md` and follow the upstream normative workflow/skills for bounded execution, model routing, scrutiny, debugging, evidence, and acceptance.
 
 Before coding-agent work, use `PROJECT_PROFILE.md` to establish the verified project baseline. Material implementation tasks should have an explicit execution contract and success gates.
 
@@ -43,6 +43,7 @@ Relevant specialized context:
 - production UX/editor flow: `docs/ux/UX_ARCHITECTURE.md`, `docs/ux/LOW_FIDELITY_WORKSPACE_SPEC.md`, `docs/ux/INTERACTION_FLOWS.md`, and `docs/ux/UX_REVIEW_GATE.md`;
 - human acceptance: `docs/uat/GOLDEN_UAT_CASES.md`;
 - requirement traceability: `docs/product/REQUIREMENTS_TRACEABILITY.md`;
+- post-R1/R2 production-core work: `docs/development/POST_R1_PRODUCTION_READINESS.md` plus the active R2 execution contract;
 - road configurations/generators: `docs/product/STARTER_ROAD_CONFIGURATION_CATALOG.md`;
 - terminology ambiguities: `docs/product/DOMAIN_GLOSSARY.md`.
 
@@ -94,6 +95,7 @@ Use the shared workflow model-routing policy. Prefer the cheapest model that can
 - Do not introduce a dependency without recording exact package/version/license/evidence at adoption.
 - Do not let visual realism imply survey accuracy or standards compliance.
 - Do not start polished UI or a large asset library before the semantic/geometry kernel is qualified.
+- Keep project/persistence/application dependencies above the accepted engineering kernel; do not introduce serde, file-format, Tauri, or UI dependencies into the geometry kernel for convenience.
 - Do not add cloud, auth, collaboration, simulation, BIM, grading, or detailed CAD features unless an explicit later specification authorizes them.
 
 ## UX and UAT evidence
