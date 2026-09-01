@@ -14,6 +14,31 @@ Requires:
 - Engineering Development Workflow validation;
 - all R1A/R1B/R1C regression workflows green.
 
+## Production package boundary
+
+R2A must establish the production dependency boundary around the accepted R1 kernel.
+
+Preferred shape:
+
+```text
+root/accepted kernel package (std-only)
+crates/project-core (or equivalent) -> depends on kernel
+```
+
+Exact path/name may vary after repository inspection.
+
+Required:
+- accepted kernel remains independently buildable and std-only;
+- project-core owns Project/Scenario semantics;
+- project-core may consume accepted R1 RoadNetwork/SemanticRef/Derived snapshot APIs;
+- no reverse dependency from kernel to project-core;
+- Cargo workspace/all-package validation is established;
+- root kernel WASM qualification remains explicit.
+
+Do not move/rewrite all R1 source merely for directory aesthetics. Prefer the smallest workspace/package change that establishes the correct dependency direction.
+
+Persistence/serde belongs to R2B above this layer.
+
 ## Scope
 
 Implement only:
