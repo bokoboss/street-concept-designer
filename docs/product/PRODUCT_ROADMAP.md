@@ -7,8 +7,9 @@ Baseline: pre-implementation Generation 2 plan.
 This roadmap defines **product outcomes and gates**, not permission to implement every listed feature now.
 
 - R0 is accepted foundation/governance work.
-- R1 is the current technical spike and is already packetized R1A → R1B → R1C.
-- R2+ remain provisional until preceding evidence is accepted.
+- R1 is ACCEPTED/COMPLETED.
+- R2 is now packetized R2A → R2B → R2C after accepted R1 evidence.
+- R3+ remain provisional until preceding evidence is accepted.
 - Each stage requires its own bounded execution contract before coding.
 - A later stage may be split/reordered after evidence.
 - Do not preserve an earlier implementation choice merely because this roadmap mentioned it as a candidate.
@@ -36,6 +37,8 @@ repository contains enough authoritative context that coding agents do not inven
 ---
 
 # R1 — Geometry / Semantic Architecture Proof
+
+Status: ACCEPTED / COMPLETED.
 
 Purpose:
 remove the largest technical unknowns before building a production editor.
@@ -89,24 +92,48 @@ R1 is not an app release.
 
 # R2 — Production Project Core
 
-Provisional until R1 accepted.
+Status: PACKETIZED / R2A NEXT AFTER CONTROL-PLANE ACCEPTANCE.
+
+See:
+- `specs/R2_PRODUCTION_PROJECT_CORE.md`
+- `specs/execution/R2A_PROJECT_SCENARIO_CORE.md`
+- `specs/execution/R2B_PERSISTENCE_MIGRATION.md`
+- `specs/execution/R2C_COMMAND_HISTORY.md`
 
 Product outcome:
 a production-quality semantic project can be created, mutated deterministically, saved, reopened, and validated without relying on a polished editor.
 
-Expected capabilities:
-- production kernel/package structure based on R1 evidence;
-- stable semantic ids;
-- project/scenario root model;
-- versioned project schema;
+Packet outcomes:
+
+## R2A — Project / Scenario Domain Core
+- production package boundary preserving std-only engineering kernel;
+- Project/Scenario root model;
+- stable ProjectId / ScenarioId;
+- scenario lineage/duplication/isolation;
+- project-scoped semantic identity;
+- explicit traffic-side/coordinate context;
+- deterministic project validation.
+
+## R2B — Versioned Persistence & Migration
+- separate persistence/schema DTO boundary;
+- canonical versioned JSON semantic document for R2 evidence;
 - save/load round trip;
-- migration harness;
-- command/transaction framework;
+- stable semantic ids;
+- authored junction persistence with derived-state reconstruction;
+- deterministic migration harness;
+- future/malformed schema rejection.
+
+## R2C — Command / Transaction / Undo / Redo
+- typed semantic mutation path;
+- preview vs commit;
+- atomic transaction;
+- stale revision handling;
+- scenario-lock enforcement;
 - undo/redo core;
-- internal geometry validation;
-- canonical fixture library promoted from R1;
-- CI for native/WASM/build/test as selected;
-- initial desktop/application scaffold only as required.
+- persistence + R1 shared-rebuild integration;
+- R2 integrated exit gate.
+
+Initial desktop/application shell is not required for R2 unless a separately reviewed boundary proof demonstrates necessity.
 
 Key UAT:
 - UAT-08 undo/redo integrity at domain level;
