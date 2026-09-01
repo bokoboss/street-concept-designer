@@ -9,19 +9,21 @@ an XY crossing is not network topology: detection returns an inert
 `JunctionCandidate`, while only an explicit `RoadNetwork::create_junction`
 call creates a first-class `Junction`.
 
-Recommendation at this evidence capture: `PROCEED_TO_R1C`.  The required
-hosted Windows/MSVC, Linux/WASM, and workflow-integrity checks are green.  The
-implementation is intentionally not a claim of standards-grade junction
-design.
+The R1B remediation is qualified and the recommendation at this evidence
+capture is `PROCEED_TO_R1C`.  The required hosted Windows/MSVC, Linux/WASM,
+R1A, and workflow-integrity checks are green.  The implementation is
+intentionally not a claim of standards-grade junction design.
 
 ## Reproducibility
 
 - Accepted execution base: `fc384b531d9f3a04790cbd9606dc71af3b310a0e`.
 - Execution branch: `codex/r1b-junction-topology`.
-- Implementation verification commit: `3cc7549` (`R1B: add junction geometry
-  and topology kernel`); the branch was clean at the accepted base before R1B
-  changes.
-- Hosted CI verification SHA: `ded5b2325972490ee4c87d220c7f7f78628db9ac`.
+- Original R1B implementation verification commit: `3cc7549` (`R1B: add
+  junction geometry and topology kernel`).
+- Remediation parent/reviewed HEAD: `c7aedb36053a695b25f17e2c7e10ddc76ec8b785`.
+- Remediation verification commit: `810057298739e85534de7b8e69b15ae0e2062650`
+  (`R1B: preserve authored junction intent`).
+- Hosted CI verification SHA: `810057298739e85534de7b8e69b15ae0e2062650`.
 - Workflow validation: Engineering Development Workflow v1.5.0, validated
   with `setup_project.py validate`; result was `VALIDATION PASS` for the
   managed/project-owned workflow files.
@@ -131,8 +133,9 @@ design.
   compatible manual preservation, incompatible manual retention without auto
   fallback, automatic deterministic regeneration, and complete derived-state
   clearing while stale.
-- Final review decision: `PASS`; no unresolved material implementation finding
-  remains.  Hosted CI closed the local MSVC-linker evidence gap.
+- Final remediation review decision: `PASS`; the two authored-state findings
+  are closed and no unresolved material implementation finding remains.
+  Hosted CI closed the local MSVC-linker evidence gap.
 
 ## Fixture coverage
 
@@ -186,7 +189,7 @@ Local results captured during implementation:
 - Formatting: pass.
 - Clippy with `-D warnings`: pass.
 - GNU native execution: all 24 accepted R1A tests and all 20 R1B tests passed
-  (44 integration tests total).
+  (44 integration tests total), including the six remediation behaviors.
 - Pinned MSVC `cargo check --all-targets`: pass; native test execution was
   unavailable on this host solely because `link.exe` is not installed, and the
   hosted MSVC test completed successfully.
@@ -210,11 +213,33 @@ Local results captured during implementation:
   alignment/lane behavior.
 - Workflow-integrity validation remains pinned to the repository's v1.5.0
   workflow commit.
-- PR #13 hosted checks for SHA `ded5b2325972490ee4c87d220c7f7f78628db9ac`
-  completed successfully: [R1B Linux/WASM run](https://github.com/bokoboss/street-concept-designer/actions/runs/33453810321),
-  [R1B Windows/MSVC run](https://github.com/bokoboss/street-concept-designer/actions/runs/33453810321),
-  [R1A qualification run](https://github.com/bokoboss/street-concept-designer/actions/runs/33453810209),
-  and [workflow-integrity run](https://github.com/bokoboss/street-concept-designer/actions/runs/33453810246).
+- PR #13 hosted checks for remediation SHA
+  `810057298739e85534de7b8e69b15ae0e2062650` completed successfully:
+  [R1B Linux/WASM run](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313520),
+  [R1B Linux/WASM job](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313520/job/99696907431),
+  [R1B Windows/MSVC run](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313520),
+  [R1B Windows/MSVC job](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313520/job/99696907584),
+  [R1A qualification run](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313504),
+  [R1A Linux job](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313504/job/99696907495),
+  [R1A Windows/MSVC job](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313504/job/99696907506),
+  and [workflow-integrity run](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313462)
+  ([job](https://github.com/bokoboss/street-concept-designer/actions/runs/33456313462/job/99696907457)).
+
+## Remediation gate disposition
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| B-G0 | PASS | Accepted R1A base, local workflow validation, and hosted R1A checks |
+| B-G1 | PASS | Inert candidate detection regressions |
+| B-G2 | PASS | Explicit junction creation regressions |
+| B-G3 | PASS | T, four-leg, skewed, unequal-width, and deterministic geometry tests |
+| B-G4 | PASS | Independent corner tests plus one/multiple authored-radius persistence tests |
+| B-G5 | PASS | Stable lane endpoints, automatic proposals, and manual connectivity tests |
+| B-G6 | PASS | Compatible/incompatible regeneration and stale derived-state tests |
+| B-G7 | PASS | Adversarial finite/surface/orphan-connection coverage |
+| B-G8 | PASS | 64-offset property/fuzz-style corpus and repeatability checks |
+| B-G9 | PASS | Post-remediation release benchmark; no architectural blocker |
+| B-G10 | PASS | Scope audit confirms no UI, map, standards, simulation, roundabout, or R1C work |
 
 ## Limitations and explicit non-goals
 
