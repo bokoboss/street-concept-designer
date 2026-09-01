@@ -23,10 +23,11 @@ pub use cross_section::{
 };
 pub use error::KernelError;
 pub use junction::{
-    detect_candidate, Approach, ApproachId, ApproachSide, CandidateDisposition, Corner, CornerId,
-    CrossingRelation, CrossingType, Junction, JunctionCandidate, JunctionId, JunctionOptions,
-    JunctionStatus, LaneConnection, LaneConnectionId, LaneConnectivityMode, LaneDirection,
-    Movement, PavementSurface, RegenerationResult, Road, RoadId, RoadNetwork,
+    detect_candidate, Approach, ApproachId, ApproachSide, AuthoredJunctionSnapshot,
+    CandidateDisposition, Corner, CornerId, CrossingRelation, CrossingType, Junction,
+    JunctionCandidate, JunctionId, JunctionOptions, JunctionStatus, LaneConnection,
+    LaneConnectionId, LaneConnectivityMode, LaneDirection, Movement, PavementSurface,
+    RegenerationResult, Road, RoadId, RoadNetwork,
 };
 pub use math::{Point2, Vector2};
 pub use policy::TolerancePolicy;

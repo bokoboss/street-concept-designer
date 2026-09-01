@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 
 [workspace]
-members = [".", "crates/project-core"]
+members = [".", "crates/project-core", "crates/project-io"]
 resolver = "2"
 
 [lib]
