@@ -88,10 +88,10 @@ Statuses:
 | Turn pocket uses general lane lifecycle | LOCKED | prevents special-case technical debt |
 | Graphics/SVG/mesh as road source-of-truth | REJECTED_INITIAL | violates semantic architecture |
 | Fixed single cross-section for entire road | REJECTED_INITIAL | insufficient for real traffic concepts |
-| Exact numerical tolerance values | EVIDENCE_GATED | R1 must derive/test rather than invent |
-| Kernel implementation language | EVIDENCE_GATED | Rust native/WASM is first hypothesis |
-| Rust native/WASM | EVIDENCE_GATED | R1A proof required |
-| Specific geometry crates | EVIDENCE_GATED | dependency/adversarial tests required |
+| Current R1 numerical tolerance policy | LOCKED FOR CURRENT KERNEL | accepted through R1 canonical/adversarial/property-style evidence; changes require explicit new evidence |
+| Kernel implementation language | LOCKED | Rust accepted by R1 native/MSVC + Linux + WASM compile evidence |
+| Rust native/WASM kernel path | LOCKED FOR PRODUCTION CORE | retain Rust engineering kernel; browser/JS binding ergonomics remain separately evidence-gated |
+| Specific future geometry crates | EVIDENCE_GATED | none required through R1; future adoption still requires dependency/adversarial evidence |
 
 ---
 
@@ -133,9 +133,16 @@ Statuses:
 | Versioned semantic project schema | LOCKED | long-term project continuity |
 | Renderer cache not source-of-truth | LOCKED | must regenerate deterministically |
 | Schema migration explicit/tested | LOCKED | avoid future project breakage |
-| Physical project container format | EVIDENCE_GATED | JSON/ZIP/etc should follow real needs |
+| Physical project container format | EVIDENCE_GATED | final .scd package/container follows later reference/asset needs |
+| R2 canonical semantic document encoding = JSON | EVIDENCE_GATED/PREFERRED | prove versioned inspectable document in R2B without locking final package container |
+| Persistence DTO separated from runtime/derived geometry | LOCKED | migrations/file schema must not mirror renderer/private runtime layout |
+| Engineering kernel remains below persistence dependencies | LOCKED | preserve accepted std-only kernel; serde/file-format dependencies live above project/domain core |
+| Scenario duplication preserves internal semantic lineage ids | LOCKED FOR R2 | new ScenarioId, copied Road/Junction/etc ids preserved for Existing/Alternative comparison |
+| Project-global object identity includes ScenarioId scope | LOCKED FOR R2 | same RoadId may legitimately exist in multiple scenarios |
 | Event sourcing required | REJECTED AS REQUIREMENT | command history does not imply event-sourced persistence |
-| Autosave/crash recovery | DEFERRED TO PRODUCT BETA BUT REQUIRED BEFORE TRUST | not R1 blocker, later professional requirement |
+| Snapshot-based undo history | EVIDENCE_GATED/PREFERRED FOR R2C | correctness-first bounded mechanism; benchmark before accepting as production implementation |
+| Persist undo history across restart | DEFERRED | canonical project snapshot must remain sufficient |
+| Autosave/crash recovery | DEFERRED TO PRODUCT BETA BUT REQUIRED BEFORE TRUST | later professional requirement |
 
 ---
 
@@ -224,18 +231,25 @@ Statuses:
 
 ---
 
-# Decisions that R1 must return
+# R1 evidence disposition
 
-R1 should provide evidence for, not silently decide:
-- kernel language final choice;
-- exact crates/libraries;
-- native/WASM build feasibility;
-- tolerance defaults;
-- sampling strategy details;
-- Boolean/offset/triangulation strategy;
-- performance baseline;
-- production DTO details;
-- any architecture contradiction discovered by adversarial geometry.
+R1 is complete.
+
+Accepted evidence:
+- Rust engineering kernel;
+- current named numerical policy/tolerances;
+- no third-party geometry crate required through R1;
+- explicit topology model;
+- shared f64 renderer-facing derivation;
+- local-render-origin policy;
+- structured semantic renderer identity.
+
+Still evidence-gated:
+- browser/JS binding mechanism;
+- production PixiJS/Three.js adoption;
+- serialization format/library details beyond R2 policy;
+- future geometry dependencies;
+- production-scale incremental regeneration/hit-testing.
 
 ## Change discipline
 
