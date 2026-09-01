@@ -56,7 +56,12 @@ This matrix is intentionally higher-level than unit tests.
 | AI-02 | AI never directly edits mesh/SVG/project JSON | DECISION_REGISTER | COMMAND_TRANSACTION_MODEL | all/later | architecture tests/review |
 | PERS-01 | Project uses versioned semantic schema | PROJECT_FILE_SCHEMA | DECISION_REGISTER | R2 | UAT-11 |
 | PERS-02 | Save/reopen preserves stable semantic ids/state | PROJECT_FILE_SCHEMA | R2 contract later | R2 | UAT-11 |
-| PERS-03 | Schema migrations are explicit/tested | PROJECT_FILE_SCHEMA | ROADMAP | R2+ | migration fixtures/UAT-11 |
+| PERS-03 | Schema migrations are explicit/tested | PROJECT_FILE_SCHEMA | ROADMAP | R2B+ | migration fixtures/UAT-11 |
+| PERS-04 | Scenario duplication creates independent engineering state while preserving internal semantic lineage ids | SEMANTIC_MODEL / DECISION_REGISTER | R2_PRODUCTION_PROJECT_CORE | R2A | R2A isolation/identity fixtures; UAT-03 later |
+| PERS-05 | Project-global semantic references scope scenario-local ids by ScenarioId | DECISION_REGISTER | R2_PRODUCTION_PROJECT_CORE | R2A | duplicate-id cross-scenario fixture |
+| PERS-06 | Persistence stores authored semantic Junction state and rebuilds disposable geometry | PROJECT_FILE_SCHEMA / R1B evidence | R2B_PERSISTENCE_MIGRATION | R2B | round-trip + clean R1C rebuild |
+| CMD-04 | Locked Scenario rejects committed engineering mutation | COMMAND_TRANSACTION_MODEL / scenario policy | R2C_COMMAND_HISTORY | R2C | command lock tests |
+| CMD-05 | Stale proposal/revision is rejected explicitly | COMMAND_TRANSACTION_MODEL | R2C_COMMAND_HISTORY | R2C | stale-revision tests |
 | EXP-01 | Engineering export works without basemap | EXPORT_POLICY | MAP_BASEMAP_POLICY | R7 | UAT-01/06 |
 | EXP-02 | Basemap inclusion only when rights permit | EXPORT_POLICY | MAP_BASEMAP_POLICY | R7 | UAT-06 |
 | EXP-03 | High-resolution report-ready plan output | PRODUCT_VISION | EXPORT_POLICY | R7 | GW-06/UAT |
