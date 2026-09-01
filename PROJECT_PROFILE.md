@@ -11,7 +11,7 @@
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
 - Accepted date: 2026-09-01
-- Current phase/milestone: R1 completed; R2 production core packetized; R2A is the next bounded execution after control-plane acceptance
+- Current phase/milestone: R2A accepted; R2B persistence/migration is the next separately gated packet
 - Last accepted milestone PR / CI: PR #16 (`R1C: qualify shared 2D and 3D derivation boundary`) merged as `48ae85927838b3fdc496f252e2df6e1255e4898f`; final-head R1C qualification run `33473865306` PASS, R1A regression `33473865400` PASS, R1B regression `33473865383` PASS, and workflow integrity `33473865597` PASS
 
 ## Technology stack
@@ -72,7 +72,7 @@ Changes must not alter the following unless explicitly approved:
 - renderer/provider separation from project engineering truth.
 
 ## Important paths
-- Source: `src/` (accepted R1 engineering kernel/shared derivation); R2A will establish a separate project/domain package above the kernel
+- Source: `src/` (accepted R1 engineering kernel/shared derivation) + `crates/project-core/` (accepted R2A Project/Scenario domain package above the kernel)
 - Tests: `tests/` (accepted R1A/R1B/R1C regression/integration coverage); R2 package tests to be added by active packet
 - Documentation: `docs/`
 - Specifications: `specs/`
@@ -117,4 +117,4 @@ Changes must not alter the following unless explicitly approved:
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- Execute R2A only under `specs/execution/R2A_PROJECT_SCENARIO_CORE.md` after the R2 control-plane plan is merged and an exact accepted `main` base SHA is recorded. R2B/R2C must not start automatically.
+- R2A is accepted/merged. R2B may start only under `specs/execution/R2B_PERSISTENCE_MIGRATION.md` after a new exact accepted `main` base SHA is recorded. R2C must not start automatically.
