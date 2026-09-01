@@ -41,8 +41,10 @@ design.
   station.  Unspecified concept-stage lanes are bidirectional.
 - `RoadNetwork` stores roads in lexical id order and stores only explicitly
   created junctions.  Candidate detection is immutable.
-- `Junction` owns connected road ids, explicit approaches, independent
-  corners, semantic lane connections, and derived surface state.
+- `Junction` owns connected road ids and authored intent separately from
+  derived state: stable-id keyed corner-radius values, a lane-connectivity
+  mode, and any manual lane-connection set are semantic; approaches, corner
+  arc samples, pavement surface, and active validated connections are derived.
 - Stable approach ids are `<road-id>::start`/`<road-id>::end`; corner ids are
   derived from the stable approach pair; generated lane-connection ids are
   derived from junction, approach, lane, and movement ids.  They do not depend
@@ -74,14 +76,24 @@ design.
 - `CandidateDisposition::Ignore` is inert and cannot create a junction.
 - Automatic proposals enumerate valid incoming-to-outgoing lane pairs, classify
   left/through/right from station-derived approach headings, and omit U-turns.
-  Proposals are stored as semantic `LaneConnection` values and can be wholly
-  replaced through validated `Junction::replace_lane_connections`.
+  `LaneConnectivityMode::Automatic` regenerates those proposals from current
+  approaches; they are not treated as authored overrides.
+- `Junction::replace_lane_connections` switches the junction to
+  `LaneConnectivityMode::Manual`, validates the replacement, and retains the
+  exact semantic set separately from the active derived connections.
 - Missing approaches, missing/inactive/non-traffic lanes, duplicate connection
   ids, U-turn pairs, and movement-category mismatches are rejected.
-- Replacing a source road clears approaches, corners, surface, and lane
-  connections and marks the junction `Stale`.  Explicit regeneration rebuilds
-  from current candidate geometry while preserving corner radii by stable
-  corner id where possible.
+- Replacing a source road clears approaches, corners, surface, and active lane
+  connections and marks the junction `Stale`; authored radius values, mode, and
+  manual intent remain. Explicit regeneration rebuilds current geometry and
+  reapplies only matching corner ids. Unmatched authored corner entries remain
+  inspectable and are never applied to another corner by position.
+- Automatic mode regenerates deterministic proposals. Compatible manual mode
+  revalidates and retains the exact authored set without adding automatic
+  connections. If manual intent is incompatible with current lanes/approaches,
+  active connections stay empty and regeneration returns
+  `ManualConnectivityIncompatible` with the authored set retained for
+  resolution.
 
 ## Independent review record
 
@@ -104,6 +116,21 @@ design.
   headings and rejects mismatches, with a regression test.
 - Maintainability issue fixed: the corner constructor was reshaped around a
   frame value after strict clippy rejected the initial eight-argument helper.
+- Remediation finding F-01: the original implementation stored an edited radius
+  only in the live `Corner`; invalidation cleared that geometry, so regeneration
+  used the default/initial radius. The remediation stores radii separately by
+  stable `CornerId`, updates that authored map from `set_corner_radius`, and
+  rebuilds only disposable arc samples.
+- Remediation finding F-02: the original implementation stored a manual
+  replacement only in active `lane_connections`; invalidation cleared it and
+  regeneration silently returned automatic proposals. The remediation stores
+  connectivity mode and manual intent separately, revalidates compatible
+  manual sets, and exposes an explicit incompatible status with no active
+  fallback when validation fails.
+- Remediation regression coverage proves one and multiple corner overrides,
+  compatible manual preservation, incompatible manual retention without auto
+  fallback, automatic deterministic regeneration, and complete derived-state
+  clearing while stale.
 - Final review decision: `PASS`; no unresolved material implementation finding
   remains.  Hosted CI closed the local MSVC-linker evidence gap.
 
@@ -122,14 +149,18 @@ The integration suite in `tests/r1b_junction.rs` covers:
 | J-07 Ignore | `ignore_and_grade_separation_never_create_topology` |
 | J-08 GradeSeparated | `ignore_and_grade_separation_never_create_topology` |
 | J-09 divided-to-undivided | `divided_to_undivided_cross_sections_are_supported_without_topology_inference` |
+| Authored corner persistence | `source_road_changes_clear_derived_state_and_regenerate_deterministically`, `multiple_authored_corner_overrides_survive_compatible_road_edit` |
+| Compatible manual connectivity | `manual_connectivity_survives_compatible_road_edit_without_auto_fallback` |
+| Incompatible manual connectivity | `incompatible_manual_connectivity_is_explicit_and_has_no_auto_fallback` |
 
 ## Adversarial, determinism, property, and fuzz-style coverage
 
 The suite exercises acute/near-tangent lines, near misses, near-coincident
 endpoints, large coordinates, very short alignment rejection, invalid radii,
 self-intersecting and degenerate public surfaces, duplicate creation, missing
-lanes, incompatible manual connections, source-road movement/width changes,
-and repeated detection/generation.  The generated 64-offset corpus in
+lanes, incompatible manual connections, authored corner/manual connectivity
+retention, source-road movement/width changes, and repeated
+detection/generation.  The generated 64-offset corpus in
 `property_and_fuzz_style_candidate_corpus_is_repeatable_and_controlled`
 repeats candidate detection and surface validation for each case without a
 property-testing dependency.
@@ -154,19 +185,21 @@ Local results captured during implementation:
 
 - Formatting: pass.
 - Clippy with `-D warnings`: pass.
-- GNU native execution: all 24 accepted R1A tests and all 16 R1B tests passed
-  (40 integration tests total).
+- GNU native execution: all 24 accepted R1A tests and all 20 R1B tests passed
+  (44 integration tests total).
 - Pinned MSVC `cargo check --all-targets`: pass; native test execution was
   unavailable on this host solely because `link.exe` is not installed, and the
   hosted MSVC test completed successfully.
 - WASM `cargo check --target wasm32-unknown-unknown`: pass; hosted WASM
   release artifact build completed successfully.
-- Release benchmark (GNU executable on this host; 2,000 iterations): candidate
-  detection `314.44 us/op`, T generation `334.95 us/op`, four-leg generation
-  `667.80 us/op`, connectivity lookup `20,000 ops in 5.2355 ms`, and
-  regeneration after width change `1,025.13 us/op`.  These measurements are
-  exploratory and are not a performance blocker; the hosted matrix remains
-  authoritative for the pinned MSVC target.
+- Post-remediation release benchmark (GNU executable on this host; 2,000
+  iterations): candidate detection `312.43 us/op`, T generation `341.09 us/op`,
+  four-leg generation `699.21 us/op`, connectivity lookup `20,000 ops in
+  5.5979 ms`, and regeneration after width change `1,429.79 us/op`.  A repeat
+  measured regeneration at `1,729.45 us/op`; these exploratory timings include
+  host variance and the added bounded authored-state bookkeeping, and show no
+  architectural performance blocker.  The hosted matrix remains authoritative
+  for the pinned MSVC target.
 
 ## CI and workflow
 

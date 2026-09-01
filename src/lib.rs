@@ -24,8 +24,8 @@ pub use error::KernelError;
 pub use junction::{
     detect_candidate, Approach, ApproachId, ApproachSide, CandidateDisposition, Corner, CornerId,
     CrossingRelation, CrossingType, Junction, JunctionCandidate, JunctionId, JunctionOptions,
-    JunctionStatus, LaneConnection, LaneConnectionId, LaneDirection, Movement, PavementSurface,
-    RegenerationResult, Road, RoadId, RoadNetwork,
+    JunctionStatus, LaneConnection, LaneConnectionId, LaneConnectivityMode, LaneDirection,
+    Movement, PavementSurface, RegenerationResult, Road, RoadId, RoadNetwork,
 };
 pub use math::{Point2, Vector2};
 pub use policy::TolerancePolicy;

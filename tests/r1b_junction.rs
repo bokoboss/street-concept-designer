@@ -1,8 +1,9 @@
 use street_concept_designer_kernel::{
     Alignment, ApproachId, CandidateDisposition, ComponentId, ComponentKind, CornerId,
     CrossSection, CrossSectionComponent, CrossingRelation, CrossingType, JunctionOptions,
-    JunctionStatus, LaneConnection, Movement, PavementSurface, PiecewiseLinearWidthProfile, Point2,
-    RegenerationResult, Road, RoadId, RoadNetwork, StationRange, TolerancePolicy, WidthKnot,
+    JunctionStatus, LaneConnection, LaneConnectivityMode, Movement, PavementSurface,
+    PiecewiseLinearWidthProfile, Point2, RegenerationResult, Road, RoadId, RoadNetwork,
+    StationRange, TolerancePolicy, WidthKnot,
 };
 
 fn policy() -> TolerancePolicy {
@@ -406,6 +407,161 @@ fn corner_radii_are_independent_and_have_stable_ids() {
 }
 
 #[test]
+fn multiple_authored_corner_overrides_survive_compatible_road_edit() {
+    let mut network = RoadNetwork::new();
+    network
+        .add_road(line_road(
+            "a",
+            Point2::new(-100.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[3.5],
+        ))
+        .unwrap();
+    network
+        .add_road(line_road(
+            "b",
+            Point2::new(0.0, -100.0),
+            Point2::new(0.0, 100.0),
+            &[3.5],
+        ))
+        .unwrap();
+    let junction_id = create(
+        &mut network,
+        "a",
+        "b",
+        "j-multiple-corners",
+        JunctionOptions::new(),
+    );
+    let corner_ids = network
+        .junction(&junction_id)
+        .unwrap()
+        .corners()
+        .iter()
+        .map(|corner| corner.id().clone())
+        .collect::<Vec<_>>();
+    let edits = [(corner_ids[0].clone(), 17.0), (corner_ids[2].clone(), 23.0)];
+    for (corner_id, radius_m) in &edits {
+        network
+            .junction_mut(&junction_id)
+            .unwrap()
+            .set_corner_radius(corner_id, *radius_m, &policy())
+            .unwrap();
+    }
+
+    network
+        .replace_road(line_road(
+            "a",
+            Point2::new(-100.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[4.25],
+        ))
+        .unwrap();
+    assert_eq!(
+        network.junction(&junction_id).unwrap().status(),
+        JunctionStatus::Stale
+    );
+    assert_eq!(
+        network
+            .regenerate_junction(&junction_id, &policy())
+            .unwrap(),
+        RegenerationResult::Regenerated
+    );
+    let regenerated = network.junction(&junction_id).unwrap();
+    for (corner_id, radius_m) in edits {
+        assert_eq!(regenerated.corner(&corner_id).unwrap().radius_m(), radius_m);
+    }
+    assert_eq!(
+        regenerated
+            .corners()
+            .iter()
+            .map(|corner| corner.id().clone())
+            .collect::<Vec<_>>(),
+        corner_ids
+    );
+    regenerated.surface().unwrap().validate(&policy()).unwrap();
+}
+
+#[test]
+fn unmatched_authored_corner_intent_is_retained_without_retargeting() {
+    let mut network = RoadNetwork::new();
+    network
+        .add_road(line_road(
+            "a",
+            Point2::new(-100.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[3.5],
+        ))
+        .unwrap();
+    network
+        .add_road(line_road(
+            "b",
+            Point2::new(0.0, -100.0),
+            Point2::new(0.0, 100.0),
+            &[3.5],
+        ))
+        .unwrap();
+    let junction_id = create(
+        &mut network,
+        "a",
+        "b",
+        "j-unmatched-corner",
+        JunctionOptions::new(),
+    );
+    let edited_corner_id = network
+        .junction(&junction_id)
+        .unwrap()
+        .corners()
+        .iter()
+        .find(|corner| corner.start_approach_id().as_str().contains("a::start"))
+        .or_else(|| {
+            network
+                .junction(&junction_id)
+                .unwrap()
+                .corners()
+                .iter()
+                .find(|corner| corner.end_approach_id().as_str().contains("a::start"))
+        })
+        .expect("corner on removed approach")
+        .id()
+        .clone();
+    network
+        .junction_mut(&junction_id)
+        .unwrap()
+        .set_corner_radius(&edited_corner_id, 19.0, &policy())
+        .unwrap();
+
+    network
+        .replace_road(line_road(
+            "a",
+            Point2::new(0.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[3.5],
+        ))
+        .unwrap();
+    assert_eq!(
+        network
+            .regenerate_junction(&junction_id, &policy())
+            .unwrap(),
+        RegenerationResult::Regenerated
+    );
+    let regenerated = network.junction(&junction_id).unwrap();
+    assert!(regenerated.corner(&edited_corner_id).is_none());
+    assert_eq!(
+        regenerated
+            .authored_corner_radii_m()
+            .iter()
+            .find(|(corner_id, _)| corner_id == &edited_corner_id)
+            .map(|(_, radius_m)| *radius_m),
+        Some(19.0)
+    );
+    assert!(regenerated
+        .corners()
+        .iter()
+        .all(|corner| corner.radius_m() != 19.0));
+    regenerated.surface().unwrap().validate(&policy()).unwrap();
+}
+
+#[test]
 fn ignore_and_grade_separation_never_create_topology() {
     let mut network = RoadNetwork::new();
     network
@@ -598,6 +754,175 @@ fn lane_connections_are_stable_and_manual_replacement_is_validated() {
 }
 
 #[test]
+fn manual_connectivity_survives_compatible_road_edit_without_auto_fallback() {
+    let mut network = RoadNetwork::new();
+    network
+        .add_road(line_road(
+            "a",
+            Point2::new(-100.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[3.5],
+        ))
+        .unwrap();
+    network
+        .add_road(line_road(
+            "b",
+            Point2::new(0.0, -100.0),
+            Point2::new(0.0, 100.0),
+            &[3.5],
+        ))
+        .unwrap();
+    let junction_id = create(
+        &mut network,
+        "a",
+        "b",
+        "j-manual-compatible",
+        JunctionOptions::new(),
+    );
+    let manual = LaneConnection::new(
+        "manual-compatible",
+        ApproachId::new("a::start").unwrap(),
+        ComponentId::new("lane-1").unwrap(),
+        ApproachId::new("b::end").unwrap(),
+        ComponentId::new("lane-1").unwrap(),
+        Movement::Left,
+    )
+    .unwrap();
+    network
+        .junction_mut(&junction_id)
+        .unwrap()
+        .replace_lane_connections(vec![manual.clone()])
+        .unwrap();
+    let expected = vec![manual];
+    assert_eq!(
+        network.junction(&junction_id).unwrap().connectivity_mode(),
+        LaneConnectivityMode::Manual
+    );
+    assert_eq!(
+        network
+            .junction(&junction_id)
+            .unwrap()
+            .authored_lane_connections(),
+        expected.as_slice()
+    );
+
+    network
+        .replace_road(line_road(
+            "a",
+            Point2::new(-100.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[4.25],
+        ))
+        .unwrap();
+    let stale = network.junction(&junction_id).unwrap();
+    assert_eq!(stale.status(), JunctionStatus::Stale);
+    assert!(stale.lane_connections().is_empty());
+    assert_eq!(stale.authored_lane_connections(), expected.as_slice());
+    assert_eq!(
+        network
+            .regenerate_junction(&junction_id, &policy())
+            .unwrap(),
+        RegenerationResult::Regenerated
+    );
+    let regenerated = network.junction(&junction_id).unwrap();
+    assert_eq!(regenerated.status(), JunctionStatus::Fresh);
+    assert_eq!(
+        regenerated.connectivity_mode(),
+        LaneConnectivityMode::Manual
+    );
+    assert_eq!(regenerated.lane_connections(), expected.as_slice());
+    assert_eq!(regenerated.authored_lane_connections(), expected.as_slice());
+    assert_eq!(regenerated.lane_connections().len(), 1);
+    assert!(regenerated.lane_connections().iter().all(|connection| {
+        regenerated
+            .approach(connection.from_approach_id())
+            .is_some()
+            && regenerated.approach(connection.to_approach_id()).is_some()
+    }));
+}
+
+#[test]
+fn incompatible_manual_connectivity_is_explicit_and_has_no_auto_fallback() {
+    let mut network = RoadNetwork::new();
+    network
+        .add_road(line_road(
+            "a",
+            Point2::new(-100.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[3.5, 3.5],
+        ))
+        .unwrap();
+    network
+        .add_road(line_road(
+            "b",
+            Point2::new(0.0, -100.0),
+            Point2::new(0.0, 100.0),
+            &[3.5, 3.5],
+        ))
+        .unwrap();
+    let junction_id = create(
+        &mut network,
+        "a",
+        "b",
+        "j-manual-incompatible",
+        JunctionOptions::new(),
+    );
+    let manual = LaneConnection::new(
+        "manual-lane-two",
+        ApproachId::new("a::start").unwrap(),
+        ComponentId::new("lane-2").unwrap(),
+        ApproachId::new("b::end").unwrap(),
+        ComponentId::new("lane-1").unwrap(),
+        Movement::Left,
+    )
+    .unwrap();
+    network
+        .junction_mut(&junction_id)
+        .unwrap()
+        .replace_lane_connections(vec![manual.clone()])
+        .unwrap();
+
+    network
+        .replace_road(line_road(
+            "a",
+            Point2::new(-100.0, 0.0),
+            Point2::new(100.0, 0.0),
+            &[3.5],
+        ))
+        .unwrap();
+    let stale = network.junction(&junction_id).unwrap();
+    assert_eq!(stale.status(), JunctionStatus::Stale);
+    assert!(stale.surface().is_none());
+    assert!(stale.lane_connections().is_empty());
+    assert_eq!(
+        stale.authored_lane_connections(),
+        [manual.clone()].as_slice()
+    );
+    assert_eq!(
+        network
+            .regenerate_junction(&junction_id, &policy())
+            .unwrap(),
+        RegenerationResult::ManualConnectivityIncompatible
+    );
+    let incompatible = network.junction(&junction_id).unwrap();
+    assert_eq!(
+        incompatible.status(),
+        JunctionStatus::ManualConnectivityIncompatible
+    );
+    assert!(incompatible.surface().is_some());
+    assert!(incompatible.lane_connections().is_empty());
+    assert!(incompatible.movement_categories().is_empty());
+    assert_eq!(
+        incompatible.authored_lane_connections(),
+        [manual].as_slice()
+    );
+    assert_eq!(
+        incompatible.connectivity_mode(),
+        LaneConnectivityMode::Manual
+    );
+}
+
+#[test]
 fn source_road_changes_clear_derived_state_and_regenerate_deterministically() {
     let mut network = RoadNetwork::new();
     let original_a = line_road(
@@ -621,6 +946,15 @@ fn source_road_changes_clear_derived_state_and_regenerate_deterministically() {
         "j-regenerate",
         JunctionOptions::new(),
     );
+    assert_eq!(
+        network.junction(&junction_id).unwrap().connectivity_mode(),
+        LaneConnectivityMode::Automatic
+    );
+    assert!(network
+        .junction(&junction_id)
+        .unwrap()
+        .authored_lane_connections()
+        .is_empty());
     let old_area = network
         .junction(&junction_id)
         .unwrap()
@@ -642,6 +976,13 @@ fn source_road_changes_clear_derived_state_and_regenerate_deterministically() {
         .iter()
         .map(|connection| connection.id().clone())
         .collect::<Vec<_>>();
+    let old_corner_radii = network.junction(&junction_id).unwrap().corner_radii_m();
+    let edited_corner_id = old_corner_ids[1].clone();
+    network
+        .junction_mut(&junction_id)
+        .unwrap()
+        .set_corner_radius(&edited_corner_id, 20.0, &policy())
+        .unwrap();
 
     let wider_a = line_road(
         "a",
@@ -652,8 +993,11 @@ fn source_road_changes_clear_derived_state_and_regenerate_deterministically() {
     network.replace_road(wider_a).unwrap();
     let stale = network.junction(&junction_id).unwrap();
     assert_eq!(stale.status(), JunctionStatus::Stale);
+    assert!(stale.approaches().is_empty());
+    assert!(stale.corners().is_empty());
     assert!(stale.surface().is_none());
     assert!(stale.lane_connections().is_empty());
+    assert_eq!(stale.authored_corner_radii_m().len(), old_corner_ids.len());
     assert_eq!(
         network
             .regenerate_junction(&junction_id, &policy())
@@ -663,6 +1007,7 @@ fn source_road_changes_clear_derived_state_and_regenerate_deterministically() {
     let regenerated = network.junction(&junction_id).unwrap();
     assert_eq!(regenerated.status(), JunctionStatus::Fresh);
     assert_ne!(regenerated.surface().unwrap().area_m2().unwrap(), old_area);
+    regenerated.surface().unwrap().validate(&policy()).unwrap();
     assert_eq!(
         regenerated
             .corners()
@@ -671,6 +1016,14 @@ fn source_road_changes_clear_derived_state_and_regenerate_deterministically() {
             .collect::<Vec<_>>(),
         old_corner_ids
     );
+    for (index, corner) in regenerated.corners().iter().enumerate() {
+        let expected = if corner.id() == &edited_corner_id {
+            20.0
+        } else {
+            old_corner_radii[index]
+        };
+        assert_eq!(corner.radius_m(), expected);
+    }
     assert_eq!(
         regenerated
             .lane_connections()
@@ -679,6 +1032,14 @@ fn source_road_changes_clear_derived_state_and_regenerate_deterministically() {
             .collect::<Vec<_>>(),
         old_connection_ids
     );
+    let first_regenerated = regenerated.clone();
+    assert_eq!(
+        network
+            .regenerate_junction(&junction_id, &policy())
+            .unwrap(),
+        RegenerationResult::Regenerated
+    );
+    assert_eq!(network.junction(&junction_id).unwrap(), &first_regenerated);
 
     let moved_b = line_road(
         "b",

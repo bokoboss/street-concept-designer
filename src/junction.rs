@@ -124,13 +124,25 @@ impl Movement {
     }
 }
 
+/// Source of the junction's lane-connectivity intent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LaneConnectivityMode {
+    /// Lane connections are regenerated deterministically from current approaches.
+    Automatic,
+    /// Lane connections come from the retained authored manual set.
+    Manual,
+}
+
 /// Current validity state of derived junction geometry and lane connections.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JunctionStatus {
-    /// Derived geometry and semantic connections describe current source roads.
+    /// Derived geometry and active connections describe current source roads.
     Fresh,
     /// Source-road edits invalidated all derived geometry and connections.
     Stale,
+    /// Geometry is current, but the retained manual connectivity intent is not
+    /// valid against the current approaches or lanes.
+    ManualConnectivityIncompatible,
 }
 
 /// Result of an explicit junction regeneration request.
@@ -138,6 +150,8 @@ pub enum JunctionStatus {
 pub enum RegenerationResult {
     /// The junction was rebuilt from the current source roads.
     Regenerated,
+    /// Geometry was rebuilt, but retained manual connectivity needs resolution.
+    ManualConnectivityIncompatible,
     /// The source roads no longer produce a usable candidate.
     Stale,
 }
@@ -713,13 +727,24 @@ impl LaneConnection {
     }
 }
 
-/// First-class semantic junction. Surface and lane connections are derived
-/// members and are absent while the junction is stale.
+#[derive(Debug, Clone)]
+struct AuthoredJunctionState {
+    corner_radii: Vec<(CornerId, f64)>,
+    connectivity_mode: LaneConnectivityMode,
+    manual_lane_connections: Vec<LaneConnection>,
+}
+
+/// First-class semantic junction. Authored parameters and connectivity intent
+/// survive source-road invalidation; approaches, corner samples, surface, and
+/// active connections are disposable derived state.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Junction {
     id: JunctionId,
     road_ids: Vec<RoadId>,
     candidate: JunctionCandidate,
+    authored_corner_radii: Vec<(CornerId, f64)>,
+    connectivity_mode: LaneConnectivityMode,
+    authored_lane_connections: Vec<LaneConnection>,
     approaches: Vec<Approach>,
     corners: Vec<Corner>,
     surface: Option<PavementSurface>,
@@ -770,9 +795,33 @@ impl Junction {
         self.surface.as_ref()
     }
 
-    /// Explicit lane connections, absent semantically as an empty list when stale.
+    /// Active validated lane connections for the current derived approaches.
     pub fn lane_connections(&self) -> &[LaneConnection] {
         &self.lane_connections
+    }
+
+    /// Authored corner radii keyed by stable corner id.
+    ///
+    /// Entries whose corner is not currently derivable are retained here for
+    /// explicit later resolution; they are never applied to another corner by
+    /// position.
+    pub fn authored_corner_radii_m(&self) -> &[(CornerId, f64)] {
+        &self.authored_corner_radii
+    }
+
+    /// Current source of lane-connectivity intent.
+    pub fn connectivity_mode(&self) -> LaneConnectivityMode {
+        self.connectivity_mode
+    }
+
+    /// Authored manual lane connections retained across invalidation.
+    ///
+    /// Automatic proposals are not authored intent and therefore return an
+    /// empty slice here. An incompatible manual set remains available for
+    /// later user resolution even though it is not exposed by
+    /// [`Self::lane_connections`].
+    pub fn authored_lane_connections(&self) -> &[LaneConnection] {
+        &self.authored_lane_connections
     }
 
     /// Unique movement categories in deterministic connection order.
@@ -804,11 +853,14 @@ impl Junction {
         &mut self,
         connections: Vec<LaneConnection>,
     ) -> Result<(), KernelError> {
-        if self.status != JunctionStatus::Fresh {
+        if self.status == JunctionStatus::Stale {
             return Err(KernelError::StaleJunction);
         }
         validate_lane_connections(&self.approaches, &connections, &self.policy)?;
-        self.lane_connections = connections;
+        self.lane_connections = connections.clone();
+        self.authored_lane_connections = connections;
+        self.connectivity_mode = LaneConnectivityMode::Manual;
+        self.status = JunctionStatus::Fresh;
         Ok(())
     }
 
@@ -819,7 +871,7 @@ impl Junction {
         radius_m: f64,
         policy: &TolerancePolicy,
     ) -> Result<(), KernelError> {
-        if self.status != JunctionStatus::Fresh {
+        if self.status == JunctionStatus::Stale {
             return Err(KernelError::StaleJunction);
         }
         let index = self
@@ -845,6 +897,7 @@ impl Junction {
         let surface = derive_surface(&self.approaches, &corners, policy)?;
         self.corners = corners;
         self.surface = Some(surface);
+        upsert_corner_radius(&mut self.authored_corner_radii, corner_id, radius_m);
         self.policy = *policy;
         Ok(())
     }
@@ -1007,15 +1060,15 @@ impl RoadNetwork {
             return Err(KernelError::DuplicateJunctionId);
         }
         let (road_a, road_b) = self.road_pair(&current)?;
-        let junction = build_junction(
-            junction_id.clone(),
-            current,
+        let junction = build_junction(JunctionBuildRequest {
+            id: junction_id.clone(),
+            candidate: current,
             road_a,
             road_b,
             options,
             policy,
-            None,
-        )?;
+            authored: None,
+        })?;
         let index = self
             .junctions
             .binary_search_by(|existing| existing.id().cmp(&junction_id))
@@ -1036,17 +1089,17 @@ impl RoadNetwork {
             .iter()
             .position(|junction| junction.id() == id)
             .ok_or(KernelError::MissingJunction)?;
-        let (road_a_id, road_b_id, options, previous_radii) = {
+        let (road_a_id, road_b_id, options, authored) = {
             let junction = &self.junctions[index];
             (
                 junction.road_ids[0].clone(),
                 junction.road_ids[1].clone(),
                 junction.options.clone(),
-                junction
-                    .corners
-                    .iter()
-                    .map(|corner| (corner.id.clone(), corner.radius_m))
-                    .collect::<Vec<_>>(),
+                AuthoredJunctionState {
+                    corner_radii: junction.authored_corner_radii.clone(),
+                    connectivity_mode: junction.connectivity_mode,
+                    manual_lane_connections: junction.authored_lane_connections.clone(),
+                },
             )
         };
         let candidate =
@@ -1056,18 +1109,23 @@ impl RoadNetwork {
             return Ok(RegenerationResult::Stale);
         };
         let (road_a, road_b) = self.road_pair(&candidate)?;
-        match build_junction(
-            id.clone(),
+        match build_junction(JunctionBuildRequest {
+            id: id.clone(),
             candidate,
             road_a,
             road_b,
             options,
             policy,
-            Some(&previous_radii),
-        ) {
+            authored: Some(&authored),
+        }) {
             Ok(junction) => {
+                let result = if junction.status == JunctionStatus::Fresh {
+                    RegenerationResult::Regenerated
+                } else {
+                    RegenerationResult::ManualConnectivityIncompatible
+                };
                 self.junctions[index] = junction;
-                Ok(RegenerationResult::Regenerated)
+                Ok(result)
             }
             Err(error) => {
                 self.junctions[index].invalidate();
@@ -1313,15 +1371,45 @@ fn candidate_ordering(left: &JunctionCandidate, right: &JunctionCandidate) -> Or
         .then_with(|| left.point.y.total_cmp(&right.point.y))
 }
 
-fn build_junction(
+struct JunctionBuildRequest<'a> {
     id: JunctionId,
     candidate: JunctionCandidate,
-    road_a: &Road,
-    road_b: &Road,
+    road_a: &'a Road,
+    road_b: &'a Road,
     options: JunctionOptions,
-    policy: &TolerancePolicy,
-    previous_radii: Option<&[(CornerId, f64)]>,
-) -> Result<Junction, KernelError> {
+    policy: &'a TolerancePolicy,
+    authored: Option<&'a AuthoredJunctionState>,
+}
+
+fn build_junction(request: JunctionBuildRequest<'_>) -> Result<Junction, KernelError> {
+    let JunctionBuildRequest {
+        id,
+        candidate,
+        road_a,
+        road_b,
+        options,
+        policy,
+        authored,
+    } = request;
+    let previous_radii = authored.map(|state| state.corner_radii.as_slice());
+    let connectivity_mode =
+        authored
+            .map(|state| state.connectivity_mode)
+            .unwrap_or(if options.auto_lane_connections {
+                LaneConnectivityMode::Automatic
+            } else {
+                LaneConnectivityMode::Manual
+            });
+    let mut authored_corner_radii = authored
+        .map(|state| state.corner_radii.clone())
+        .unwrap_or_default();
+    let authored_lane_connections = if connectivity_mode == LaneConnectivityMode::Manual {
+        authored
+            .map(|state| state.manual_lane_connections.clone())
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
     if candidate.crossing_type == CrossingType::EndpointMeeting
         && candidate_approach_count(&candidate, road_a, road_b, policy)? < 3
     {
@@ -1376,7 +1464,7 @@ fn build_junction(
             })
             .or_else(|| options.corner_radii_m.get(corner_index).copied())
             .unwrap_or(options.default_corner_radius_m);
-        corners.push(Corner::from_directions(
+        let corner = Corner::from_directions(
             corner_id,
             start.id.clone(),
             end.id.clone(),
@@ -1387,27 +1475,55 @@ fn build_junction(
                 end_direction: end.outward_direction,
             },
             policy,
-        )?);
+        )?;
+        upsert_corner_radius(&mut authored_corner_radii, corner.id(), radius_m);
+        corners.push(corner);
     }
     let surface = derive_surface(&approaches, &corners, policy)?;
-    let lane_connections = if options.auto_lane_connections {
-        propose_lane_connections(&id, &approaches, policy)?
-    } else {
-        Vec::new()
+    let (lane_connections, status) = match connectivity_mode {
+        LaneConnectivityMode::Automatic => {
+            let connections = propose_lane_connections(&id, &approaches, policy)?;
+            validate_lane_connections(&approaches, &connections, policy)?;
+            (connections, JunctionStatus::Fresh)
+        }
+        LaneConnectivityMode::Manual => {
+            if validate_lane_connections(&approaches, &authored_lane_connections, policy).is_ok() {
+                (authored_lane_connections.clone(), JunctionStatus::Fresh)
+            } else {
+                (Vec::new(), JunctionStatus::ManualConnectivityIncompatible)
+            }
+        }
     };
-    validate_lane_connections(&approaches, &lane_connections, policy)?;
     Ok(Junction {
         id,
         road_ids: vec![road_a.id.clone(), road_b.id.clone()],
         candidate,
+        authored_corner_radii,
+        connectivity_mode,
+        authored_lane_connections,
         approaches,
         corners,
         surface: Some(surface),
         lane_connections,
         options,
         policy: *policy,
-        status: JunctionStatus::Fresh,
+        status,
     })
+}
+
+fn upsert_corner_radius(
+    authored_corner_radii: &mut Vec<(CornerId, f64)>,
+    corner_id: &CornerId,
+    radius_m: f64,
+) {
+    if let Some((_, existing_radius)) = authored_corner_radii
+        .iter_mut()
+        .find(|(existing_id, _)| existing_id == corner_id)
+    {
+        *existing_radius = radius_m;
+    } else {
+        authored_corner_radii.push((corner_id.clone(), radius_m));
+    }
 }
 
 fn candidate_approach_count(
