@@ -21,9 +21,11 @@ intentionally not a claim of standards-grade junction design.
 - Original R1B implementation verification commit: `3cc7549` (`R1B: add
   junction geometry and topology kernel`).
 - Remediation parent/reviewed HEAD: `c7aedb36053a695b25f17e2c7e10ddc76ec8b785`.
-- Remediation verification commit: `810057298739e85534de7b8e69b15ae0e2062650`
+- Remediation implementation commit: `810057298739e85534de7b8e69b15ae0e2062650`
   (`R1B: preserve authored junction intent`).
-- Hosted CI verification SHA: `810057298739e85534de7b8e69b15ae0e2062650`.
+- Final semantic/evidence commit: `c3edf4004188514268c6f49a10e9a9529aaac197`.
+- Hosted CI verification SHA for the final semantic/evidence state:
+  `c3edf4004188514268c6f49a10e9a9529aaac197`.
 - Workflow validation: Engineering Development Workflow v1.5.0, validated
   with `setup_project.py validate`; result was `VALIDATION PASS` for the
   managed/project-owned workflow files.
