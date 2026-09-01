@@ -20,7 +20,7 @@ is `PROCEED_BEYOND_R1`.
 
 - Exact accepted R1C execution base: `f73db356537636af2b378ddddd61b3dbfa85018a`.
 - Execution branch: `codex/r1c-shared-render-proof`.
-- Qualified implementation HEAD: `c304b701bb2822a3ceac28b84754eff8cdaf16f3`.
+- Qualified implementation/evidence baseline HEAD: `d8adb81301a9ba9d7fc966b46963ac977376b0ce`.
 - Pull request: [#16 — R1C: prove shared 2D and 3D derivation boundary](https://github.com/bokoboss/street-concept-designer/pull/16)
   (open; not merged).
 - Issue: #15, R1C shared 2D/3D derivation and renderer boundary proof.
@@ -236,20 +236,20 @@ The local WASM release build passed.  The local pinned MSVC check/lint path is
 available, but test/release linking requires the hosted Windows runner's
 `link.exe`.
 
-Hosted verification for qualified implementation HEAD
-`c304b701bb2822a3ceac28b84754eff8cdaf16f3`:
+Hosted verification for qualified implementation/evidence baseline HEAD
+`d8adb81301a9ba9d7fc966b46963ac977376b0ce`:
 
-- [R1C workflow run 33469884745](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884745)
-  passed both [Linux/native+WASM job 99737308225](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884745/job/99737308225)
-  and [Windows/MSVC job 99737308418](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884745/job/99737308418).
-- [R1A regression workflow run 33469884692](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884692)
-  passed [Linux job 99737308153](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884692/job/99737308153)
-  and [Windows/MSVC job 99737307905](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884692/job/99737307905).
-- [R1B regression workflow run 33469884706](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884706)
-  passed [Linux job 99737308180](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884706/job/99737308180)
-  and [Windows/MSVC job 99737307951](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884706/job/99737307951).
-- [Engineering Workflow Integrity run 33469884697](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884697)
-  passed [validation job 99737307956](https://github.com/bokoboss/street-concept-designer/actions/runs/33469884697/job/99737307956).
+- [R1C workflow run 33470156173](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156173)
+  passed both [Linux/native+WASM job 99738098207](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156173/job/99738098207)
+  and [Windows/MSVC job 99738098391](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156173/job/99738098391).
+- [R1A regression workflow run 33470156276](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156276)
+  passed [Linux job 99738098048](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156276/job/99738098048)
+  and [Windows/MSVC job 99738098396](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156276/job/99738098396).
+- [R1B regression workflow run 33470156108](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156108)
+  passed [Linux job 99738097814](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156108/job/99738097814)
+  and [Windows/MSVC job 99738098096](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156108/job/99738098096).
+- [Engineering Workflow Integrity run 33470156322](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156322)
+  passed [validation job 99738098213](https://github.com/bokoboss/street-concept-designer/actions/runs/33470156322/job/99738098213).
 
 ## Exploratory benchmark
 
@@ -274,7 +274,7 @@ snapshot.
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
-| C-G0 accepted R1A/R1B base and workflow | PASS | exact base above, local validation, and hosted runs 33469884692, 33469884706, 33469884697 |
+| C-G0 accepted R1A/R1B base and workflow | PASS | exact base above, local validation, and hosted runs 33470156276, 33470156108, 33470156322 |
 | C-G1 one snapshot feeds 2D and 3D | PASS | shared component trace and adapter signatures |
 | C-G2 stable semantic ids | PASS | `SemanticRef` parity tests |
 | C-G3 no duplicate engineering algorithms | PASS | only `derive_road` evaluates widths/offsets; adapters consume snapshot |
