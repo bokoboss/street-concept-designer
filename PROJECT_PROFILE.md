@@ -10,14 +10,14 @@
 ## Current accepted baseline
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
-- Accepted date: 2026-08-25
-- Current phase/milestone: R1A ready for bounded execution
-- Last accepted milestone PR / CI: PR #7 (`Refresh accepted R1A execution baseline`); Engineering Workflow Integrity run `32831310190` PASS
+- Accepted date: 2026-09-01
+- Current phase/milestone: R1B accepted; R1C ready for bounded execution
+- Last accepted milestone PR / CI: PR #13 (`R1B: qualify junction geometry and topology kernel`) merged as `329281f464456b7bc94896cf5e08f0c58643e7d5`; final-head R1B qualification run `33456860583` PASS and workflow integrity run `33456860580` PASS
 
 ## Technology stack
-- Languages: not locked; TypeScript and Rust are candidate implementation languages
+- Languages: Rust is accepted for the R1 engineering kernel; TypeScript remains the candidate application/UI language
 - Frameworks: candidate desktop/UI stack is Tauri 2 + React; 2D PixiJS, 3D Three.js, MapLibre under evaluation
-- Package manager: not established
+- Package manager: Cargo established for the Rust kernel; frontend package manager not yet established
 - Supported OS/runtime: Windows-first desktop target; Windows x64 first. Product requires per-user installer plus no-install Portable distribution; final OS/runtime compatibility remains qualification-gated
 
 ## Standard commands
@@ -27,12 +27,17 @@ Not established before R1 implementation.
 ```
 ### Fast validation
 ```text
-Not established before R1 implementation.
+cargo check --locked
+cargo test --locked
 ```
 ### Full validation
 ```text
+cargo fmt --all -- --check
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked --all-targets --all-features
+cargo build --locked --release
+cargo build --locked --release --target wasm32-unknown-unknown
 Engineering workflow integrity: python <workflow-checkout>/scripts/setup_project.py validate .
-R1-specific commands will be established by the chosen kernel implementation.
 ```
 ### Build/package
 ```text
@@ -67,8 +72,8 @@ Changes must not alter the following unless explicitly approved:
 - renderer/provider separation from project engineering truth.
 
 ## Important paths
-- Source: not created yet
-- Tests: not created yet
+- Source: `src/` (accepted R1A alignment/lifecycle kernel + R1B junction/topology kernel)
+- Tests: `tests/` (R1A/R1B regression/integration coverage)
 - Documentation: `docs/`
 - Specifications: `specs/`
 - Execution contracts: `specs/execution/`
@@ -103,13 +108,13 @@ Changes must not alter the following unless explicitly approved:
 - Baseline pinning policy: execution tasks must record the exact `main` base SHA at branch/worktree creation in the task/PR/evidence package; do not attempt to make an in-repository profile file self-reference its own HEAD SHA
 
 ## Current known limitations / risks
-- No production code or executable application toolchain exists yet.
-- Kernel language/geometry libraries are not locked.
+- No production desktop/editor shell exists yet; accepted R1 kernel source and qualification CI now exist.
+- Rust is accepted for the current R1 kernel path; no third-party geometry library has been required through R1B.
 - Current UI/rendering stack is candidate architecture only.
 - Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
-- R1 must prove alignment, stationing, variable-width components, topology, determinism, precision policy, and shared 2D/3D derivation before production editor work.
+- R1A/R1B have proven alignment, stationing, variable-width components, topology, determinism, and precision policy; R1C must now prove shared 2D/3D derivation before production editor work.
 - Product-file physical container, persistence mechanism, and final renderer DTOs remain intentionally unimplemented; policy boundaries are documented first.
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- Execute R1A only: kernel feasibility + alignment/stationing + cross-section/lane lifecycle under `specs/execution/R1A_ALIGNMENT_LANE_LIFECYCLE.md`. At task start, branch from current accepted `main` and record the exact base SHA in the execution evidence. R1B junction/topology and R1C shared-render proof remain separately gated and must not start automatically.
+- Execute R1C only: shared renderer-facing derivation proof under `specs/execution/R1C_SHARED_RENDER_PROOF.md`. At task start, branch from current accepted `main` and record the exact base SHA in execution evidence. Production UI/editor work remains separately gated and must not start automatically.
