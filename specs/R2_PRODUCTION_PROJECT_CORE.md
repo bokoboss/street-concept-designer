@@ -102,6 +102,36 @@ R2 must not weaken R1 to make persistence or undo easier.
 
 ---
 
+# Production package boundary
+
+R1 established a useful std-only Rust engineering kernel. R2 must preserve that property rather than introducing file-format/application dependencies into geometry code.
+
+Required dependency direction:
+
+```text
+accepted engineering kernel
+        ↑
+project/domain core
+        ↑
+persistence / schema encoding
+        ↑
+future application shell
+```
+
+Preferred repository shape is a Cargo workspace with the accepted kernel remaining an independent package and a separate project/domain package. R2B persistence may be another package/module above project-core.
+
+Exact crate names/paths are implementation details, but these constraints are not:
+
+- kernel must not depend on project-core;
+- kernel must not depend on serde/JSON/Tauri/React;
+- project-core may depend on kernel;
+- persistence may depend on project-core + serialization libraries;
+- future app shell depends downward, never the reverse.
+
+All workspace tests must preserve the accepted kernel native/MSVC/WASM qualification.
+
+---
+
 # Project / scenario identity policy
 
 ## Project identity
