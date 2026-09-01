@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Baseline: pre-implementation Generation 2 plan.
+Baseline: post-R1 production plan (2026-09-01).
 
 ## Roadmap policy
 
