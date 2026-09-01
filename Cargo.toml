@@ -10,3 +10,7 @@ crate-type = ["rlib", "cdylib"]
 [[bench]]
 name = "r1a_kernel"
 harness = false
+
+[[bench]]
+name = "r1b_junction"
+harness = false

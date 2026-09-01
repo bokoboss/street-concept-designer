@@ -47,7 +47,10 @@ Read in this order:
 
 ## Current status
 
-R1A now contains a qualified-in-scope, renderer-free alignment and lane-lifecycle kernel spike. No production architecture is considered qualified until the broader geometry/semantic spike passes its acceptance gate.
+R1A and R1B contain qualified-in-scope, renderer-free reference-alignment,
+lane-lifecycle, candidate-detection, and concept-stage junction-topology kernel
+spikes. No production architecture is considered qualified until the broader
+geometry/semantic spike passes its acceptance gate.
 
 ## R1A kernel commands
 
@@ -59,9 +62,14 @@ cargo clippy --locked --all-targets --all-features -- -D warnings
 cargo test --locked --all-targets --all-features -- --nocapture
 cargo build --locked --target wasm32-unknown-unknown --release
 cargo bench --locked --bench r1a_kernel
+cargo bench --locked --bench r1b_junction
 ```
 
 The kernel uses metres as canonical units, named tolerances, reference
 alignment stationing, ordered semantic components, and general lane width
-profiles. It does not include product UI, maps, renderers, junction topology,
-or persistence.
+profiles. R1B adds an inert geometry-only `JunctionCandidate`, explicit
+first-class junction creation, station/tangent-based approaches, independent
+corner radius-style geometry, deterministic lane-connection proposals, and
+explicit stale/regeneration handling. It does not include product UI, maps,
+renderers, persistence, roadway standards, swept paths, simulation, roundabouts,
+or U-turn engines.
