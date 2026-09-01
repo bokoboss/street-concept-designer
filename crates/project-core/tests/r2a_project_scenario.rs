@@ -402,43 +402,73 @@ fn duplicate_scenario_preserves_lineage_and_explicit_duplicate_policy() {
             .collect::<Vec<_>>()
     );
     assert_eq!(
-        existing.network().junctions()[0].id(),
-        alternative.network().junctions()[0].id()
+        existing
+            .network()
+            .junctions()
+            .iter()
+            .map(|junction| junction.id().clone())
+            .collect::<Vec<_>>(),
+        alternative
+            .network()
+            .junctions()
+            .iter()
+            .map(|junction| junction.id().clone())
+            .collect::<Vec<_>>()
     );
     assert_eq!(
-        existing.network().roads()[0]
-            .cross_section()
-            .ordered_component_ids(),
-        alternative.network().roads()[0]
-            .cross_section()
-            .ordered_component_ids()
+        existing
+            .network()
+            .roads()
+            .iter()
+            .flat_map(|road| road.cross_section().ordered_component_ids())
+            .collect::<Vec<_>>(),
+        alternative
+            .network()
+            .roads()
+            .iter()
+            .flat_map(|road| road.cross_section().ordered_component_ids())
+            .collect::<Vec<_>>()
     );
     assert_eq!(
         existing.network().junctions()[0].lane_connections(),
         alternative.network().junctions()[0].lane_connections()
     );
     assert_eq!(
-        existing.network().junctions()[0]
-            .corners()
+        existing
+            .network()
+            .junctions()
             .iter()
-            .map(|corner| corner.id().clone())
+            .flat_map(|junction| junction.corners().iter().map(|corner| corner.id().clone()))
             .collect::<Vec<_>>(),
-        alternative.network().junctions()[0]
-            .corners()
+        alternative
+            .network()
+            .junctions()
             .iter()
-            .map(|corner| corner.id().clone())
+            .flat_map(|junction| junction.corners().iter().map(|corner| corner.id().clone()))
             .collect::<Vec<_>>()
     );
     assert_eq!(
-        existing.network().junctions()[0]
-            .lane_connections()
+        existing
+            .network()
+            .junctions()
             .iter()
-            .map(|connection| connection.id().clone())
+            .flat_map(|junction| {
+                junction
+                    .lane_connections()
+                    .iter()
+                    .map(|connection| connection.id().clone())
+            })
             .collect::<Vec<_>>(),
-        alternative.network().junctions()[0]
-            .lane_connections()
+        alternative
+            .network()
+            .junctions()
             .iter()
-            .map(|connection| connection.id().clone())
+            .flat_map(|junction| {
+                junction
+                    .lane_connections()
+                    .iter()
+                    .map(|connection| connection.id().clone())
+            })
             .collect::<Vec<_>>()
     );
     project
