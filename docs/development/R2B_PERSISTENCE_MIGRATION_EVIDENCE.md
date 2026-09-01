@@ -6,8 +6,9 @@ This document records the bounded R2B implementation and qualification. The
 working branch is `codex/r2b-persistence-migration`; the PR is intentionally
 unmerged and R2C was not started.
 
-The qualification PR is open and intentionally unmerged. Hosted CI results are
-recorded in the CI section after the final workflow runs complete.
+The qualification PR is open and intentionally unmerged. Hosted CI completed
+successfully for the implementation head recorded below. The final evidence
+revision is documentation-only after that qualification.
 
 ## Execution identity and baseline
 
@@ -20,6 +21,7 @@ recorded in the CI section after the final workflow runs complete.
 | Remote branch at kickoff | 0 ahead / 0 behind the accepted base |
 | Accepted `main` containment | `bbaa4fe5a57e8b754efd27c0d6f9f1a5821f2031` is an ancestor of `origin/main` |
 | Implementation HEAD | `8fef27c7c58bc680fa30160bfb6812315eb1d623` |
+| Hosted qualification HEAD | `a43bb6f2a491ee43ef9beb1f6cb538cbc251f855` |
 | PR | [#24](https://github.com/bokoboss/street-concept-designer/pull/24), open and intentionally unmerged |
 
 Before implementation, the worktree was clean, `origin` was fetched, the
@@ -373,8 +375,21 @@ clean R1C rebuild after load: 1115.465 us/op
 ```
 
 Platform/toolchain: Windows x86_64, Rust 1.98.0 GNU fallback with WinLibs
-linker. This is exploratory evidence, not an SLA. Hosted Linux CI will record
-the authoritative R2B benchmark output.
+linker. This is exploratory evidence, not an SLA. Hosted Linux CI provides the
+authoritative R2B benchmark output recorded below.
+
+Hosted Linux release benchmark from R2B workflow run
+[#33508242937](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937),
+job [99857367820](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937/job/99857367820):
+
+```text
+target_os=linux target_arch=x86_64 document_bytes=4816 iterations=2000
+encode Project -> JSON:       16.985 us/op
+decode JSON -> Project:       167.139 us/op
+v0 -> v1 migration/load:      165.253 us/op
+complete in-memory save/load: 189.692 us/op
+clean R1C rebuild after load: 304.590 us/op
+```
 
 ## CI matrix and gates
 
@@ -384,9 +399,21 @@ check/tests, explicit project-io tests, the R2B benchmark, kernel WASM,
 project-io WASM, and a pinned Rust 1.98.0 MSVC release build. Existing R1A,
 R1B, R1C, R2A, and Workflow Integrity workflows remain active regressions.
 
+Hosted qualification for source head
+`a43bb6f2a491ee43ef9beb1f6cb538cbc251f855`:
+
+| Workflow | Linux job | Windows/MSVC job | Result |
+|---|---|---|---|
+| R2B Persistence and Migration Qualification, run [33508242937](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937) | [99857367820](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937/job/99857367820) | [99857367392](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937/job/99857367392) | PASS |
+| R1A Kernel Qualification, run [33508242899](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242899) | [99857367194](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242899/job/99857367194) | [99857366910](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242899/job/99857366910) | PASS |
+| R1B Junction Topology Qualification, run [33508242890](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242890) | [99857367140](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242890/job/99857367140) | [99857366748](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242890/job/99857366748) | PASS |
+| R1C Shared Render Qualification, run [33508242903](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242903) | [99857367588](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242903/job/99857367588) | [99857366967](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242903/job/99857366967) | PASS |
+| R2A Project Core Qualification, run [33508242927](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242927) | [99857367172](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242927/job/99857367172) | [99857366867](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242927/job/99857366867) | PASS |
+| Engineering Workflow Integrity, run [33508242871](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242871) | [99857366679](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242871/job/99857366679) | — | PASS |
+
 | Gate | Evidence/status |
 |---|---|
-| B-G0 accepted R2A base/workflow | PASS locally; hosted confirmation pending |
+| B-G0 accepted R2A base/workflow | PASS locally and hosted |
 | B-G1 explicit schema v1 | PASS by DTO/code/tests |
 | B-G2 stable IDs round-trip | PASS by R2B tests |
 | B-G3 R1 road/lifecycle state | PASS by R2B tests and R1C comparison |
@@ -395,8 +422,8 @@ R1B, R1C, R2A, and Workflow Integrity workflows remain active regressions.
 | B-G6 deterministic encoding/order | PASS by byte/order assertions |
 | B-G7 explicit v0 migration | PASS by migration tests |
 | B-G8 future/malformed rejection | PASS by negative tests |
-| B-G9 dependency/license/build matrix | Local WASM + GNU fallback PASS; hosted matrix pending |
-| B-G10 no scope creep | PASS by diff/scope audit; hosted workflow integrity pending |
+| B-G9 dependency/license/build matrix | PASS: dependency graph, Linux/Windows/MSVC, kernel/project-io WASM |
+| B-G10 no scope creep | PASS by diff/scope audit and hosted Workflow Integrity |
 
 ## Known limitations
 
@@ -415,7 +442,10 @@ R1B, R1C, R2A, and Workflow Integrity workflows remain active regressions.
 
 ## Final review checklist
 
-Before finalizing this document, record the final commit SHA, PR number/link,
-all hosted workflow run/job links and statuses, the exact post-commit test
-count, the authoritative Linux benchmark output, and the final recommendation.
-The PR must remain open and unmerged, and R2C must remain unstarted.
+The implementation source was qualified at
+`a43bb6f2a491ee43ef9beb1f6cb538cbc251f855`; the evidence closeout after that
+qualification changes documentation only. PR [#24](https://github.com/bokoboss/street-concept-designer/pull/24)
+is open and unmerged, the hosted matrix above is green, the exact post-edit
+workspace count is 83 integration tests, and R2C remains unstarted. The final
+repository HEAD is the containing documentation closeout commit reported with
+the final task handoff.
