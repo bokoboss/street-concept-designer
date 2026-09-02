@@ -16,13 +16,13 @@ This matrix is intentionally higher-level than unit tests.
 | P-06 | Portable ZIP can run without installation/admin/development toolchain | DECISION_REGISTER | WINDOWS_DISTRIBUTION_POLICY | R8/R9 | UAT-13 Portable Light |
 | P-07 | Offline office deployment is qualified | DECISION_REGISTER | WINDOWS_DISTRIBUTION_POLICY | R8/R9 | UAT-13 Offline Installer / Portable Offline |
 | P-08 | Project files behave identically across Installed/Portable modes | PROJECT_FILE_SCHEMA | WINDOWS_DISTRIBUTION_POLICY | R8/R9 | UAT-11 + UAT-13 |
-| UX-01 | 2D plan is primary engineering authoring surface | UX_ARCHITECTURE | LOW_FIDELITY_WORKSPACE_SPEC | R3 | UAT-01/02/03 |
-| UX-02 | Direct manipulation and exact numeric input edit same semantic property | UX_ARCHITECTURE | COMMAND_TRANSACTION_MODEL | R3 | UAT-01, UX Review Gate |
-| UX-03 | Select vs Hand/navigation modes are explicit | UX_ARCHITECTURE | LOW_FIDELITY_WORKSPACE_SPEC | R3 | first-time usability / UX gate |
+| UX-01 | 2D plan is primary engineering authoring surface | UX_ARCHITECTURE | LOW_FIDELITY_WORKSPACE_SPEC | R3A/R3C+ | R3A renderer/selection proof; UAT-01/02/03 later |
+| UX-02 | Direct manipulation and exact numeric input edit same semantic property | UX_ARCHITECTURE | COMMAND_TRANSACTION_MODEL | R3C/R3D | UAT-01, UX Review Gate |
+| UX-03 | Select vs Hand/navigation modes are explicit | UX_ARCHITECTURE | LOW_FIDELITY_WORKSPACE_SPEC | R3A | Playwright + first-time usability / UX gate |
 | UX-04 | Advanced station/topology details use progressive disclosure | UX_ARCHITECTURE | LOW_FIDELITY_WORKSPACE_SPEC | R3/R4 | UX gate |
 | UX-05 | Contextual actions preferred over CAD-scale tool proliferation | TOOL_TAXONOMY | LOW_FIDELITY_WORKSPACE_SPEC | R3/R4 | UX gate |
 | G-01 | Road source-of-truth uses reference alignment + stationing | SEMANTIC_MODEL | GEOMETRY_PRECISION_TOLERANCE_POLICY | R1A | kernel evidence; UAT-03 later |
-| G-02 | Initial alignment handles line, arc, smooth conceptual curve | SEMANTIC_MODEL | R1A contract | R1A | R1A fixtures |
+| G-02 | Initial alignment primitives handle line, arc, smooth conceptual curve; practical multi-segment Road alignment is separately productionized | SEMANTIC_MODEL / DECISION_REGISTER | R1A / R3 compound-alignment policy | R1A primitives; R3B compound | R1A fixtures; R3C authoring UAT later |
 | G-03 | Cross section is ordered semantic components | SEMANTIC_MODEL | STARTER_ROAD_CONFIGURATION_CATALOG | R1A/R3 | R1A tests; UAT-05 |
 | G-04 | Component/lane widths vary by station | SEMANTIC_MODEL | R1A contract | R1A | R1A fixtures |
 | G-05 | Lane add/drop/taper use general lifecycle | SEMANTIC_MODEL | R1A contract | R1A | R1A fixtures; UAT-03 |
@@ -35,8 +35,8 @@ This matrix is intentionally higher-level than unit tests.
 | R-01 | 2D and 3D derive from one canonical semantic model | PRODUCT_VISION | RENDERER_CONTRACT | R1C | UAT-07 |
 | R-02 | Renderer state/caches are disposable and non-authoritative | TECHNICAL_ARCHITECTURE | PROJECT_FILE_SCHEMA | R1C/R2 | rebuild tests, UAT-11 |
 | R-03 | Large coordinates use local render-origin strategy | TECHNICAL_ARCHITECTURE | RENDERER_CONTRACT | R1C | large-coordinate fixture / UAT-07 |
-| M-01 | Map/reference data is separate from engineering model | MAP_BASEMAP_POLICY | REFERENCE_DATA_QUALITY_MODEL | R3/R7 | UAT-06 |
-| M-02 | User image/site plan supports scale calibration | GOLDEN_WORKFLOWS | Low-Fidelity Workspace | R3 | UAT-06 |
+| M-01 | Map/reference data is separate from engineering model | MAP_BASEMAP_POLICY | REFERENCE_DATA_QUALITY_MODEL | R3E/R7 | UAT-06 |
+| M-02 | User image/site plan supports scale calibration | GOLDEN_WORKFLOWS | Low-Fidelity Workspace | R3E | UAT-06 |
 | M-03 | Provider digitization/cache/export rights are enforced | MAP_BASEMAP_POLICY | EXPORT_POLICY | R7 | provider capability tests/UAT-06 |
 | M-04 | Source quality does not imply false precision | USER_PAINPOINTS | REFERENCE_DATA_QUALITY_MODEL | R3+ | UAT-06 |
 | S-01 | Existing and alternatives are first-class scenarios | PRODUCT_VISION | SEMANTIC_MODEL | R2A | R2A automated proof; UAT-01/03 later |
