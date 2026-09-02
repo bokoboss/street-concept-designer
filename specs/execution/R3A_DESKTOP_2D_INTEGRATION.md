@@ -486,9 +486,13 @@ The frontend must be runnable without Tauri using a mock transport adapter.
 Mock data:
 - deterministic;
 - test-only/development-only;
-- derived-shaped, not treated as canonical Project truth;
+- transport-shaped, not treated as canonical Project truth;
 - includes straight/curved road component surfaces, Junction and Corner primitives;
 - includes a large-coordinate case represented with small local coordinates + explicit render origin.
+
+**Preferred contract-proof:** generate or serialize the browser qualification fixture from the Rust `editor-bridge` using accepted kernel/R1C fixtures, commit the resulting deterministic transport JSON, and have a Rust test prove the checked-in fixture still equals current bridge output. Browser tests then consume the same fixture.
+
+Do not hand-maintain a second independent set of engineering-looking polygons in TypeScript if the Rust bridge can provide the qualification fixture.
 
 Production app selects the Tauri transport, not the mock.
 
@@ -556,6 +560,7 @@ Pure Rust bridge tests must remain runnable with Cargo.
 ### Rust
 At minimum:
 - EditorBackend rejects/propagates invalid ScenarioId;
+- checked-in browser transport fixture equals deterministic Rust bridge output;
 - workspace Scenario order equals Project authored order;
 - scene derives from selected Scenario only;
 - same local RoadId in two Scenarios transports distinct project-scoped refs;
