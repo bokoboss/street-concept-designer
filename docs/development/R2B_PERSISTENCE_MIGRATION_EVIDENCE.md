@@ -8,9 +8,9 @@ unmerged and R2C was not started.
 
 The qualification PR is open and intentionally unmerged. This remediation
 closes the independent-review F-01 strict-schema finding while preserving the
-accepted R2B architecture and behavior. Hosted CI for the remediation head
-will be recorded below; the final evidence revision will be documentation-only
-after that qualification.
+accepted R2B architecture and behavior. Hosted CI is green for the remediation
+head recorded below; the final evidence revision is documentation-only after
+that qualification.
 
 ## Execution identity and baseline
 
@@ -25,7 +25,7 @@ after that qualification.
 | Implementation HEAD | `8fef27c7c58bc680fa30160bfb6812315eb1d623` |
 | Hosted qualification HEAD | `a43bb6f2a491ee43ef9beb1f6cb538cbc251f855` |
 | Remediation source HEAD | `914d24e70bde68f30f3e2560585b80de1a577b69` |
-| Hosted remediation qualification HEAD | pending final remediation CI |
+| Remediation qualification HEAD | `d634c1d42f87ae4f89c2e0db8e6a81eb9718f61d` |
 | PR | [#24](https://github.com/bokoboss/street-concept-designer/pull/24), open and intentionally unmerged |
 
 Before implementation, the worktree was clean, `origin` was fetched, the
@@ -414,17 +414,17 @@ Platform/toolchain: Windows x86_64, Rust 1.98.0 GNU fallback with WinLibs
 linker. This is exploratory evidence, not an SLA. Hosted Linux CI provides the
 authoritative R2B benchmark output recorded below.
 
-Hosted Linux release benchmark from R2B workflow run
-[#33508242937](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937),
-job [99857367820](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937/job/99857367820):
+Hosted Linux release benchmark from the remediation R2B workflow run
+[#33582934461](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934461),
+job [100100900138](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934461/job/100100900138):
 
 ```text
 target_os=linux target_arch=x86_64 document_bytes=4816 iterations=2000
-encode Project -> JSON:       16.985 us/op
-decode JSON -> Project:       167.139 us/op
-v0 -> v1 migration/load:      165.253 us/op
-complete in-memory save/load: 189.692 us/op
-clean R1C rebuild after load: 304.590 us/op
+encode Project -> JSON:       13.164 us/op
+decode JSON -> Project:       102.586 us/op
+v0 -> v1 migration/load:      100.484 us/op
+complete in-memory save/load: 115.758 us/op
+clean R1C rebuild after load: 194.684 us/op
 ```
 
 ## CI matrix and gates
@@ -437,18 +437,18 @@ R1B, R1C, R2A, and Workflow Integrity workflows remain active regressions.
 
 The prior hosted qualification for source head
 `a43bb6f2a491ee43ef9beb1f6cb538cbc251f855` remains the accepted R2B baseline
-qualification. A fresh remediation qualification for source head
-`914d24e70bde68f30f3e2560585b80de1a577b69` is required before closeout and
-will be recorded with its exact run and job IDs.
+qualification. The remediation qualification for source head
+`d634c1d42f87ae4f89c2e0db8e6a81eb9718f61d` is green across R2B, R2A, R1A,
+R1B, R1C, and Engineering Workflow Integrity.
 
 | Workflow | Linux job | Windows/MSVC job | Result |
 |---|---|---|---|
-| R2B Persistence and Migration Qualification, run [33508242937](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937) | [99857367820](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937/job/99857367820) | [99857367392](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242937/job/99857367392) | PASS |
-| R1A Kernel Qualification, run [33508242899](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242899) | [99857367194](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242899/job/99857367194) | [99857366910](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242899/job/99857366910) | PASS |
-| R1B Junction Topology Qualification, run [33508242890](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242890) | [99857367140](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242890/job/99857367140) | [99857366748](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242890/job/99857366748) | PASS |
-| R1C Shared Render Qualification, run [33508242903](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242903) | [99857367588](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242903/job/99857367588) | [99857366967](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242903/job/99857366967) | PASS |
-| R2A Project Core Qualification, run [33508242927](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242927) | [99857367172](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242927/job/99857367172) | [99857366867](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242927/job/99857366867) | PASS |
-| Engineering Workflow Integrity, run [33508242871](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242871) | [99857366679](https://github.com/bokoboss/street-concept-designer/actions/runs/33508242871/job/99857366679) | — | PASS |
+| R2B Persistence and Migration Qualification, run [33582934461](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934461) | [100100900138](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934461/job/100100900138) | [100100899979](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934461/job/100100899979) | PASS |
+| R1A Kernel Qualification, run [33582934379](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934379) | [100100899950](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934379/job/100100899950) | [100100899692](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934379/job/100100899692) | PASS |
+| R1B Junction Topology Qualification, run [33582934419](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934419) | [100100900019](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934419/job/100100900019) | [100100899786](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934419/job/100100899786) | PASS |
+| R1C Shared Render Qualification, run [33582934424](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934424) | [100100899911](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934424/job/100100899911) | [100100899687](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934424/job/100100899687) | PASS |
+| R2A Project Core Qualification, run [33582934387](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934387) | [100100899605](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934387/job/100100899605) | [100100899766](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934387/job/100100899766) | PASS |
+| Engineering Workflow Integrity, run [33582934340](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934340) | [100100899447](https://github.com/bokoboss/street-concept-designer/actions/runs/33582934340/job/100100899447) | — | PASS |
 
 | Gate | Evidence/status |
 |---|---|
@@ -486,8 +486,9 @@ will be recorded with its exact run and job IDs.
 ## Final review checklist
 
 The remediation source is
-`914d24e70bde68f30f3e2560585b80de1a577b69`; the final evidence closeout will
-record the remediation hosted matrix and containing documentation commit. PR
+`914d24e70bde68f30f3e2560585b80de1a577b69`; the remediation qualification
+head is `d634c1d42f87ae4f89c2e0db8e6a81eb9718f61d`. The final evidence
+closeout after that qualification changes documentation only. PR
 [#24](https://github.com/bokoboss/street-concept-designer/pull/24) is open and
 unmerged, the workspace count is 89 integration tests, the duplicate-key
-regressions are green locally, and R2C remains unstarted.
+regressions are green locally and hosted, and R2C remains unstarted.
