@@ -153,7 +153,20 @@ canonical project state survives save/reopen/undo/rebuild deterministically.
 
 # R3 — 2D Road Authoring Alpha
 
-Status: CONTROL-PLANE PLANNING NEXT; IMPLEMENTATION NOT YET AUTHORIZED.
+Status: PACKETIZED / R3A NEXT AFTER CONTROL-PLANE ACCEPTANCE.
+
+See:
+- `specs/R3_2D_ROAD_AUTHORING_ALPHA.md`
+- `specs/execution/R3A_DESKTOP_2D_INTEGRATION.md`
+- `docs/development/POST_R2_EDITOR_READINESS.md`
+- `docs/development/R3_STACK_RESEARCH_GATE.md`
+
+Packet sequence:
+1. R3A Desktop Shell / Read-only 2D Integration
+2. R3B Compound Alignment Productionization
+3. R3C Road Draw / Alignment Edit
+4. R3D Cross Section / Lifecycle / Presets / Turn Pocket
+5. R3E Reference Image Calibration / Integrated R3 UAT
 
 Product outcome:
 a traffic engineer can start a local project/reference image and build/edit semantic roads in 2D without CAD.
