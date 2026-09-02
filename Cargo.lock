@@ -97,6 +97,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "street-concept-designer-project-session"
+version = "0.1.0"
+dependencies = [
+ "street-concept-designer-kernel",
+ "street-concept-designer-project-core",
+ "street-concept-designer-project-io",
+]
+
+[[package]]
 name = "syn"
 version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

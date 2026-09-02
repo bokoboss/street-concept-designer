@@ -1,0 +1,16 @@
+[package]
+name = "street-concept-designer-project-session"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+street-concept-designer-kernel = { path = "../.." }
+street-concept-designer-project-core = { path = "../project-core" }
+
+[dev-dependencies]
+street-concept-designer-project-io = { path = "../project-io" }
+
+[[bench]]
+name = "r2c_command_history"
+harness = false
