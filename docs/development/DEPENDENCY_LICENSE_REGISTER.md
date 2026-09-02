@@ -322,3 +322,38 @@ Tauri supports `build --no-bundle`, but the final portable artifact must explici
 
 See:
 `docs/architecture/WINDOWS_DISTRIBUTION_POLICY.md`.
+
+# L. R2B persistence dependencies
+
+Qualification date: 2026-09-01. These are the exact packages resolved by the
+R2B lockfile for `street-concept-designer-project-io`. The direct dependency
+declarations are exact pins; all transitive packages below are recorded from
+`cargo metadata --locked` and `cargo tree --locked`.
+
+| Package | Version | Direct/transitive | Role | SPDX/license expression | Repository/source | Native/MSVC and WASM qualification |
+|---|---:|---|---|---|---|---|
+| `serde` | 1.0.229 | direct | Explicit DTO serialization/deserialization traits | MIT OR Apache-2.0 | https://github.com/serde-rs/serde | Pure Rust; compiled for native MSVC/Linux and WASM target |
+| `serde_json` | 1.0.151 | direct | Compact JSON encoding/decoding with `float_roundtrip` | MIT OR Apache-2.0 | https://github.com/serde-rs/json | Pure Rust; compiled for native MSVC/Linux and WASM target |
+| `serde_core` | 1.0.229 | transitive | Core Serde traits used by Serde and Serde JSON | MIT OR Apache-2.0 | https://github.com/serde-rs/serde | Pure Rust; native/MSVC and WASM dependency path qualified |
+| `serde_derive` | 1.0.229 | transitive | Proc-macro implementation of DTO derives | MIT OR Apache-2.0 | https://github.com/serde-rs/serde | Host proc macro for native/MSVC/Linux builds; not linked into WASM artifact |
+| `itoa` | 1.0.18 | transitive | Integer formatting used by Serde JSON | MIT OR Apache-2.0 | https://github.com/dtolnay/itoa | Pure Rust; native/MSVC and WASM dependency path qualified |
+| `memchr` | 2.8.3 | transitive | Byte scanning used by Serde JSON | Unlicense OR MIT | https://github.com/BurntSushi/memchr | Pure Rust; native/MSVC and WASM dependency path qualified |
+| `zmij` | 1.0.23 | transitive | Floating-point formatting used by Serde JSON | MIT | https://github.com/dtolnay/zmij | Pure Rust; native/MSVC and WASM dependency path qualified |
+| `proc-macro2` | 1.0.107 | transitive | Proc-macro token support | MIT OR Apache-2.0 | https://github.com/dtolnay/proc-macro2 | Host proc macro for native/MSVC/Linux builds; not linked into WASM artifact |
+| `quote` | 1.0.47 | transitive | Proc-macro token generation | MIT OR Apache-2.0 | https://github.com/dtolnay/quote | Host proc macro for native/MSVC/Linux builds; not linked into WASM artifact |
+| `syn` | 3.0.4 | transitive | Proc-macro Rust syntax parsing | MIT OR Apache-2.0 | https://github.com/dtolnay/syn | Host proc macro for native/MSVC/Linux builds; not linked into WASM artifact |
+| `unicode-ident` | 1.0.24 | transitive | Unicode identifier classification for proc macros | (MIT OR Apache-2.0) AND Unicode-3.0 | https://github.com/dtolnay/unicode-ident | Host proc macro dependency; Unicode notice retained by package metadata |
+
+The selected feature graph is deliberately minimal: `serde` enables
+`derive`; `serde_json` enables `float_roundtrip` (alongside its normal `std`
+default). `preserve_order`, `arbitrary_precision`, `raw_value`, and
+`unbounded_depth` are not enabled. No dependency has a native C library or
+runtime service requirement. The complete resolved graph is permissively
+licensed under project policy; the `memchr` Unlicense option and the
+`unicode-ident` Unicode-3.0 notice are explicitly retained for downstream
+notice generation.
+
+The R2B acceptance fixtures cover native compilation and the project-io WASM
+artifact. Hosted Linux and Windows/MSVC CI remain authoritative for the
+workflow matrix because the development host lacks the MSVC linker and
+Windows SDK libraries.

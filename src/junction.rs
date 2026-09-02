@@ -290,6 +290,57 @@ pub struct JunctionCandidate {
 }
 
 impl JunctionCandidate {
+    /// Construct a candidate observation from explicit persisted facts.
+    ///
+    /// The road pair is normalized to the same lexical order used by candidate
+    /// detection. This creates only an inert observation; it never creates
+    /// network topology.
+    pub fn from_parts(
+        road_a: RoadId,
+        road_b: RoadId,
+        point: Point2,
+        station_a_m: f64,
+        station_b_m: f64,
+        crossing_type: CrossingType,
+        relation: CrossingRelation,
+    ) -> Result<Self, KernelError> {
+        if road_a == road_b {
+            return Err(KernelError::InvalidParameter {
+                field: "candidate road pair",
+            });
+        }
+        if !point.is_finite() {
+            return Err(KernelError::NonFiniteInput {
+                field: "junction candidate point",
+            });
+        }
+        if !station_a_m.is_finite() {
+            return Err(KernelError::NonFiniteInput {
+                field: "junction candidate station a",
+            });
+        }
+        if !station_b_m.is_finite() {
+            return Err(KernelError::NonFiniteInput {
+                field: "junction candidate station b",
+            });
+        }
+        let (road_a, station_a_m, road_b, station_b_m) = if road_a < road_b {
+            (road_a, station_a_m, road_b, station_b_m)
+        } else {
+            (road_b, station_b_m, road_a, station_a_m)
+        };
+        Ok(Self {
+            road_a,
+            road_b,
+            point,
+            station_a_m,
+            station_b_m,
+            crossing_type,
+            relation,
+            disposition: CandidateDisposition::Pending,
+        })
+    }
+
     /// Stable pair of roads in lexical id order.
     pub fn road_ids(&self) -> [RoadId; 2] {
         [self.road_a.clone(), self.road_b.clone()]
@@ -356,6 +407,7 @@ impl JunctionCandidate {
         self.road_a == other.road_a
             && self.road_b == other.road_b
             && self.crossing_type == other.crossing_type
+            && self.relation == other.relation
             && self.point.distance_to(other.point) <= policy.coordinate_coincidence_m
             && (self.station_a_m - other.station_a_m).abs() <= policy.station_bound_m
             && (self.station_b_m - other.station_b_m).abs() <= policy.station_bound_m
@@ -727,11 +779,137 @@ impl LaneConnection {
     }
 }
 
-#[derive(Debug, Clone)]
-struct AuthoredJunctionState {
+/// The authored semantic junction state required to reconstruct a junction.
+///
+/// This boundary intentionally excludes approaches, corner frames and
+/// samples, pavement vertices, active automatic connections, and every other
+/// disposable derived value.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AuthoredJunctionSnapshot {
+    id: JunctionId,
+    candidate: JunctionCandidate,
+    options: JunctionOptions,
     corner_radii: Vec<(CornerId, f64)>,
     connectivity_mode: LaneConnectivityMode,
     manual_lane_connections: Vec<LaneConnection>,
+}
+
+impl AuthoredJunctionSnapshot {
+    /// Construct an authored junction snapshot from validated semantic ids and
+    /// intent. Source-road endpoint compatibility is checked when the snapshot
+    /// is restored into a [`RoadNetwork`].
+    pub fn from_parts(
+        id: JunctionId,
+        candidate: JunctionCandidate,
+        options: JunctionOptions,
+        corner_radii: Vec<(CornerId, f64)>,
+        connectivity_mode: LaneConnectivityMode,
+        manual_lane_connections: Vec<LaneConnection>,
+    ) -> Result<Self, KernelError> {
+        if !options.default_corner_radius_m.is_finite() {
+            return Err(KernelError::NonFiniteInput {
+                field: "junction default corner radius",
+            });
+        }
+        if options.default_corner_radius_m <= 0.0 {
+            return Err(KernelError::InvalidParameter {
+                field: "junction default corner radius",
+            });
+        }
+        for radius_m in &options.corner_radii_m {
+            if !radius_m.is_finite() {
+                return Err(KernelError::NonFiniteInput {
+                    field: "junction option corner radius",
+                });
+            }
+            if *radius_m <= 0.0 {
+                return Err(KernelError::InvalidParameter {
+                    field: "junction option corner radius",
+                });
+            }
+        }
+        for (index, (_, radius_m)) in corner_radii.iter().enumerate() {
+            if !radius_m.is_finite() {
+                return Err(KernelError::NonFiniteInput {
+                    field: "authored corner radius",
+                });
+            }
+            if *radius_m <= 0.0 {
+                return Err(KernelError::InvalidParameter {
+                    field: "authored corner radius",
+                });
+            }
+            if corner_radii[..index]
+                .iter()
+                .any(|(previous, _)| previous == &corner_radii[index].0)
+            {
+                return Err(KernelError::InvalidCornerId);
+            }
+        }
+        for (index, connection) in manual_lane_connections.iter().enumerate() {
+            if manual_lane_connections[..index]
+                .iter()
+                .any(|previous| previous.id() == connection.id())
+            {
+                return Err(KernelError::DuplicateLaneConnectionId);
+            }
+        }
+        if connectivity_mode == LaneConnectivityMode::Automatic
+            && !manual_lane_connections.is_empty()
+        {
+            return Err(KernelError::InvalidParameter {
+                field: "automatic authored lane connections",
+            });
+        }
+        Ok(Self {
+            id,
+            candidate,
+            options,
+            corner_radii,
+            connectivity_mode,
+            manual_lane_connections,
+        })
+    }
+
+    /// Stable junction identity.
+    pub fn id(&self) -> &JunctionId {
+        &self.id
+    }
+
+    /// Candidate facts used to verify the topology source on restore.
+    pub fn candidate(&self) -> &JunctionCandidate {
+        &self.candidate
+    }
+
+    /// Construction options retained as authored intent.
+    pub fn options(&self) -> &JunctionOptions {
+        &self.options
+    }
+
+    /// Authored corner radii keyed by stable corner id and retained in kernel
+    /// collection order, including ids not currently derivable.
+    pub fn corner_radii_m(&self) -> &[(CornerId, f64)] {
+        &self.corner_radii
+    }
+
+    /// Authored connectivity source.
+    pub fn connectivity_mode(&self) -> LaneConnectivityMode {
+        self.connectivity_mode
+    }
+
+    /// Authored manual connections. Automatic proposals are never included.
+    pub fn manual_lane_connections(&self) -> &[LaneConnection] {
+        &self.manual_lane_connections
+    }
+
+    fn same_authored_intent(&self, other: &Self, policy: &TolerancePolicy) -> bool {
+        self.id == other.id
+            && self.candidate.same_geometry(&other.candidate, policy)
+            && self.options == other.options
+            && self.corner_radii == other.corner_radii
+            && self.connectivity_mode == other.connectivity_mode
+            && self.manual_lane_connections == other.manual_lane_connections
+    }
 }
 
 /// First-class semantic junction. Authored parameters and connectivity intent
@@ -822,6 +1000,19 @@ impl Junction {
     /// [`Self::lane_connections`].
     pub fn authored_lane_connections(&self) -> &[LaneConnection] {
         &self.authored_lane_connections
+    }
+
+    /// Return only the authored semantic state needed for persistence and
+    /// validated reconstruction. Derived geometry is intentionally absent.
+    pub fn authored_snapshot(&self) -> AuthoredJunctionSnapshot {
+        AuthoredJunctionSnapshot {
+            id: self.id.clone(),
+            candidate: self.candidate.clone(),
+            options: self.options.clone(),
+            corner_radii: self.authored_corner_radii.clone(),
+            connectivity_mode: self.connectivity_mode,
+            manual_lane_connections: self.authored_lane_connections.clone(),
+        }
     }
 
     /// Unique movement categories in deterministic connection order.
@@ -1105,6 +1296,76 @@ impl RoadNetwork {
         Ok(junction_id)
     }
 
+    /// Restore an authored junction snapshot after re-detecting its topology
+    /// against the current source roads.
+    ///
+    /// No derived junction geometry is accepted from the snapshot. The
+    /// persisted candidate must match the current detected candidate within
+    /// the supplied policy, after which all approaches, corners, pavement,
+    /// and active connectivity are rebuilt by the normal kernel path.
+    pub fn create_junction_from_authored(
+        &mut self,
+        authored: AuthoredJunctionSnapshot,
+        policy: &TolerancePolicy,
+    ) -> Result<JunctionId, KernelError> {
+        policy.validate()?;
+        let candidate = &authored.candidate;
+        if candidate.relation != CrossingRelation::AtGrade {
+            return Err(KernelError::CandidateNotAtGrade);
+        }
+        if candidate.disposition == CandidateDisposition::Ignore {
+            return Err(KernelError::CandidateIgnored);
+        }
+        let current = self
+            .detect_candidate(
+                &candidate.road_a,
+                &candidate.road_b,
+                CrossingRelation::AtGrade,
+                policy,
+            )?
+            .ok_or(KernelError::CandidateStale)?;
+        if !candidate.same_geometry(&current, policy) {
+            return Err(KernelError::CandidateStale);
+        }
+        if self
+            .junctions
+            .iter()
+            .any(|junction| junction.candidate.same_geometry(&current, policy))
+        {
+            return Err(KernelError::CandidateAlreadyUsed);
+        }
+        if self
+            .junctions
+            .iter()
+            .any(|junction| junction.id() == authored.id())
+        {
+            return Err(KernelError::DuplicateJunctionId);
+        }
+        let (road_a, road_b) = self.road_pair(&current)?;
+        let junction = build_junction(JunctionBuildRequest {
+            id: authored.id.clone(),
+            candidate: current,
+            road_a,
+            road_b,
+            options: authored.options.clone(),
+            policy,
+            authored: Some(&authored),
+        })?;
+        if !junction
+            .authored_snapshot()
+            .same_authored_intent(&authored, policy)
+        {
+            return Err(KernelError::InvalidJunctionGeometry);
+        }
+        let junction_id = junction.id.clone();
+        let index = self
+            .junctions
+            .binary_search_by(|existing| existing.id().cmp(&junction_id))
+            .unwrap_or_else(|index| index);
+        self.junctions.insert(index, junction);
+        Ok(junction_id)
+    }
+
     /// Regenerate one junction from its current source roads.
     pub fn regenerate_junction(
         &mut self,
@@ -1119,15 +1380,12 @@ impl RoadNetwork {
             .ok_or(KernelError::MissingJunction)?;
         let (road_a_id, road_b_id, options, authored) = {
             let junction = &self.junctions[index];
+            let authored = junction.authored_snapshot();
             (
                 junction.road_ids[0].clone(),
                 junction.road_ids[1].clone(),
-                junction.options.clone(),
-                AuthoredJunctionState {
-                    corner_radii: junction.authored_corner_radii.clone(),
-                    connectivity_mode: junction.connectivity_mode,
-                    manual_lane_connections: junction.authored_lane_connections.clone(),
-                },
+                authored.options.clone(),
+                authored,
             )
         };
         let candidate =
@@ -1596,7 +1854,7 @@ struct JunctionBuildRequest<'a> {
     road_b: &'a Road,
     options: JunctionOptions,
     policy: &'a TolerancePolicy,
-    authored: Option<&'a AuthoredJunctionState>,
+    authored: Option<&'a AuthoredJunctionSnapshot>,
 }
 
 fn build_junction(request: JunctionBuildRequest<'_>) -> Result<Junction, KernelError> {
