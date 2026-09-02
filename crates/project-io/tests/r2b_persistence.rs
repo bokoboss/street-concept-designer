@@ -19,6 +19,64 @@ fn representative_json_value() -> serde_json::Value {
         .expect("valid JSON")
 }
 
+fn representative_json() -> String {
+    encode_project_to_json(&representative_project()).expect("encode")
+}
+
+fn duplicate_raw_scalar_field(json: &str, field: &str, first: &str, second: &str) -> String {
+    let key = format!("\"{field}\":");
+    let key_start = json
+        .find(&key)
+        .unwrap_or_else(|| panic!("field {field} not found in representative JSON"));
+    let value_start = key_start + key.len();
+    let value_end = scalar_value_end(json, value_start);
+    format!(
+        "{}{}{}{}{}{}{}",
+        &json[..key_start],
+        key,
+        first,
+        ',',
+        key,
+        second,
+        &json[value_end..]
+    )
+}
+
+fn scalar_value_end(json: &str, value_start: usize) -> usize {
+    let bytes = json.as_bytes();
+    if bytes[value_start] == b'"' {
+        let mut escaped = false;
+        for (offset, byte) in bytes.iter().enumerate().skip(value_start + 1) {
+            if *byte == b'"' && !escaped {
+                return offset + 1;
+            }
+            escaped = *byte == b'\\' && !escaped;
+            if *byte != b'\\' {
+                escaped = false;
+            }
+        }
+        panic!("unterminated JSON string")
+    }
+
+    json[value_start..]
+        .char_indices()
+        .find_map(|(offset, character)| {
+            matches!(character, ',' | '}' | ']').then_some(value_start + offset)
+        })
+        .expect("scalar JSON value terminator")
+}
+
+fn assert_raw_duplicate_rejected(json: &str, field: &str) {
+    assert!(
+        json.matches(&format!("\"{field}\":")).count() >= 2,
+        "test fixture must contain at least two raw {field} keys"
+    );
+    assert!(matches!(
+        decode_project_from_bytes(json.as_bytes()),
+        Err(PersistenceError::JsonDecode { .. })
+    ));
+}
+
 fn decode_value(value: serde_json::Value) -> Result<Project, PersistenceError> {
     decode_project_from_json(&serde_json::to_string(&value).expect("serialize test value"))
 }
@@ -383,6 +441,54 @@ fn synthetic_pre_release_v0_migration_is_explicit_deterministic_and_lossless() {
         current_json,
         "migration emits current schema v1 only"
     );
+}
+
+#[test]
+fn raw_duplicate_schema_version_is_rejected_in_both_orders() {
+    let json = representative_json();
+    let first_then_second = duplicate_raw_scalar_field(&json, "schemaVersion", "1", "2");
+    assert_raw_duplicate_rejected(&first_then_second, "schemaVersion");
+
+    let second_then_first = duplicate_raw_scalar_field(&json, "schemaVersion", "2", "1");
+    assert_raw_duplicate_rejected(&second_then_first, "schemaVersion");
+}
+
+#[test]
+fn raw_duplicate_project_id_is_rejected() {
+    let json = representative_json();
+    let duplicate =
+        duplicate_raw_scalar_field(&json, "projectId", "\"project-a\"", "\"project-b\"");
+    assert_raw_duplicate_rejected(&duplicate, "projectId");
+}
+
+#[test]
+fn raw_duplicate_nested_identity_is_rejected() {
+    let json = representative_json();
+    let duplicate =
+        duplicate_raw_scalar_field(&json, "scenarioId", "\"scenario-a\"", "\"scenario-b\"");
+    assert_raw_duplicate_rejected(&duplicate, "scenarioId");
+}
+
+#[test]
+fn raw_duplicate_engineering_number_is_rejected() {
+    let json = representative_json();
+    let duplicate = duplicate_raw_scalar_field(&json, "widthM", "3.25", "4.25");
+    assert_raw_duplicate_rejected(&duplicate, "widthM");
+}
+
+#[test]
+fn raw_duplicate_junction_field_is_rejected() {
+    let json = representative_json();
+    let duplicate = duplicate_raw_scalar_field(&json, "radiusM", "17.25", "9.75");
+    assert_raw_duplicate_rejected(&duplicate, "radiusM");
+}
+
+#[test]
+fn raw_duplicate_same_value_field_is_rejected() {
+    let json = representative_json();
+    let duplicate =
+        duplicate_raw_scalar_field(&json, "projectId", "\"project-a\"", "\"project-a\"");
+    assert_raw_duplicate_rejected(&duplicate, "projectId");
 }
 
 #[test]

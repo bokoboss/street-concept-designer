@@ -410,18 +410,17 @@ pub fn load_project_from_path(
     decode_project_from_bytes(&bytes)
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SchemaVersionProbe {
+    #[serde(default)]
+    schema_version: Option<Value>,
+}
+
 fn decode_document(bytes: &[u8]) -> Result<ProjectDocumentV1, PersistenceError> {
-    let value: Value =
-        serde_json::from_slice(bytes).map_err(|error| PersistenceError::JsonSyntax {
-            message: error.to_string(),
-        })?;
-    let object = value
-        .as_object()
-        .ok_or_else(|| PersistenceError::MalformedPersistenceDto {
-            message: "top-level JSON value must be an object".to_owned(),
-        })?;
-    let version_value = object
-        .get("schemaVersion")
+    let probe: SchemaVersionProbe = serde_json::from_slice(bytes).map_err(json_decode_error)?;
+    let version_value = probe
+        .schema_version
         .ok_or(PersistenceError::MissingSchemaVersion)?;
     let version = version_value
         .as_u64()
@@ -431,16 +430,10 @@ fn decode_document(bytes: &[u8]) -> Result<ProjectDocumentV1, PersistenceError> 
         })?;
 
     match version {
-        CURRENT_SCHEMA_VERSION => {
-            serde_json::from_value(value).map_err(|error| PersistenceError::JsonDecode {
-                message: error.to_string(),
-            })
-        }
+        CURRENT_SCHEMA_VERSION => serde_json::from_slice(bytes).map_err(json_decode_error),
         0 => {
             let historical: ProjectDocumentV0 =
-                serde_json::from_value(value).map_err(|error| PersistenceError::JsonDecode {
-                    message: error.to_string(),
-                })?;
+                serde_json::from_slice(bytes).map_err(json_decode_error)?;
             migrate_v0(historical)
         }
         version if version > CURRENT_SCHEMA_VERSION => {
@@ -449,6 +442,18 @@ fn decode_document(bytes: &[u8]) -> Result<ProjectDocumentV1, PersistenceError> 
         version => Err(PersistenceError::InvalidSchemaVersion {
             value: version.to_string(),
         }),
+    }
+}
+
+fn json_decode_error(error: serde_json::Error) -> PersistenceError {
+    if error.is_syntax() || error.is_eof() {
+        PersistenceError::JsonSyntax {
+            message: error.to_string(),
+        }
+    } else {
+        PersistenceError::JsonDecode {
+            message: error.to_string(),
+        }
     }
 }
 
