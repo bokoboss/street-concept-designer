@@ -1,6 +1,6 @@
 # Decision Register
 
-Baseline: 2026-09-01
+Baseline: 2026-09-02
 
 ## Purpose
 
@@ -134,14 +134,14 @@ Statuses:
 | Renderer cache not source-of-truth | LOCKED | must regenerate deterministically |
 | Schema migration explicit/tested | LOCKED | avoid future project breakage |
 | Physical project container format | EVIDENCE_GATED | final .scd package/container follows later reference/asset needs |
-| R2 canonical semantic document encoding = JSON | EVIDENCE_GATED/PREFERRED | prove versioned inspectable document in R2B without locking final package container |
+| R2 canonical semantic document encoding = strict compact JSON | LOCKED FOR CURRENT PROJECT CORE | accepted in R2B; final physical .scd package/container remains separately evidence-gated |
 | Persistence DTO separated from runtime/derived geometry | LOCKED | migrations/file schema must not mirror renderer/private runtime layout |
 | Engineering kernel remains below persistence dependencies | LOCKED | preserve accepted std-only kernel; serde/file-format dependencies live above project/domain core |
-| Scenario duplication preserves internal semantic lineage ids | LOCKED FOR R2 | new ScenarioId, copied Road/Junction/etc ids preserved for Existing/Alternative comparison |
-| Project-global object identity includes ScenarioId scope | LOCKED FOR R2 | same RoadId may legitimately exist in multiple scenarios |
+| Scenario duplication preserves internal semantic lineage ids | LOCKED | accepted in R2A; new ScenarioId with copied Road/Junction/etc lineage ids |
+| Project-global object identity includes ScenarioId scope | LOCKED | accepted in R2A; same RoadId may legitimately exist in multiple scenarios |
 | Event sourcing required | REJECTED AS REQUIREMENT | command history does not imply event-sourced persistence |
-| Snapshot-based undo history | EVIDENCE_GATED/PREFERRED FOR R2C | correctness-first bounded mechanism; benchmark before accepting as production implementation |
-| Persist undo history across restart | DEFERRED | canonical project snapshot must remain sufficient |
+| Snapshot-based undo history | LOCKED FOR CURRENT PROJECT CORE | accepted in R2C at current project scale; re-evaluate memory strategy at materially larger production scale |
+| Persist undo history across restart | DEFERRED | R2C history is intentionally session-only; canonical project snapshot remains sufficient |
 | Autosave/crash recovery | DEFERRED TO PRODUCT BETA BUT REQUIRED BEFORE TRUST | later professional requirement |
 
 ---
@@ -150,8 +150,8 @@ Statuses:
 
 | Decision | Status | Rationale |
 |---|---|---|
-| Manual UI/AI/import/automation share one semantic command path | LOCKED | deterministic mutation/undo/validation |
-| Preview vs commit separation | LOCKED | smooth editing without history spam |
+| Manual UI/AI/import/automation share one semantic command path | LOCKED | R2C establishes the typed application mutation boundary; future UI/AI must route through it |
+| Preview vs commit separation | LOCKED | R2C proved one shared evaluation path without history spam |
 | AI proposes typed semantic commands | LOCKED | avoids model/renderer corruption |
 | AI directly edits project JSON/mesh/SVG | REJECTED_INITIAL | bypasses invariants/audit |
 | AI natural-language authoring in initial kernel | DEFERRED | command architecture first |
