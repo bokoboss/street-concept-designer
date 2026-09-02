@@ -39,8 +39,8 @@ This matrix is intentionally higher-level than unit tests.
 | M-02 | User image/site plan supports scale calibration | GOLDEN_WORKFLOWS | Low-Fidelity Workspace | R3 | UAT-06 |
 | M-03 | Provider digitization/cache/export rights are enforced | MAP_BASEMAP_POLICY | EXPORT_POLICY | R7 | provider capability tests/UAT-06 |
 | M-04 | Source quality does not imply false precision | USER_PAINPOINTS | REFERENCE_DATA_QUALITY_MODEL | R3+ | UAT-06 |
-| S-01 | Existing and alternatives are first-class scenarios | PRODUCT_VISION | SEMANTIC_MODEL | R6 | UAT-01/03 |
-| S-02 | Editing one scenario cannot mutate another | SEMANTIC_MODEL | PROJECT_FILE_SCHEMA | R6 | UAT-01 |
+| S-01 | Existing and alternatives are first-class scenarios | PRODUCT_VISION | SEMANTIC_MODEL | R2A | R2A automated proof; UAT-01/03 later |
+| S-02 | Editing one scenario cannot mutate another | SEMANTIC_MODEL | PROJECT_FILE_SCHEMA / COMMAND_TRANSACTION_MODEL | R2A/R2C | automated isolation + command-scoping proof; UAT-01 later |
 | A-01 | Engineering markings are procedural/semantic | ASSET_SYSTEM | STARTER_ASSET_CATALOG | R5 | UAT-01/02 |
 | A-02 | Sign/signal/light systems use semantic assemblies | ASSET_SYSTEM | STARTER_ASSET_CATALOG | R5/R6/R7 | asset QA |
 | A-03 | One semantic asset may have 2D + 3D representations | ASSET_SYSTEM | ASSET_METADATA_SCHEMA | R6 | UAT-05/07 |
@@ -49,9 +49,9 @@ This matrix is intentionally higher-level than unit tests.
 | STD-02 | Project pins standards profile version | STANDARDS_POLICY | PROJECT_FILE_SCHEMA | R5/R7 | UAT-10/11 |
 | STD-03 | DOH/DRR are separate profiles, not one universal Thai standard | THAILAND_SOURCE_REGISTER | Thailand Extraction Backlog | R7 | source review |
 | STD-04 | No unverified Thai numeric default is presented as authoritative | ENGINEERING_CONSTITUTION | STANDARDS_POLICY | all | scrutiny/UAT-10 |
-| CMD-01 | Manual UI, AI, import, automation share one semantic mutation path | TECHNICAL_ARCHITECTURE | COMMAND_TRANSACTION_MODEL | R2+ | command tests |
-| CMD-02 | Meaningful edits are undoable atomic transactions | COMMAND_TRANSACTION_MODEL | AI_COMMAND_CATALOG | R2/R3 | UAT-08 |
-| CMD-03 | Preview does not mutate canonical state | COMMAND_TRANSACTION_MODEL | UX interaction flows | R2/R3 | UAT-08/09 |
+| CMD-01 | Manual UI, AI, import, automation share one semantic mutation path | TECHNICAL_ARCHITECTURE | COMMAND_TRANSACTION_MODEL | R2C | R2C transaction tests; UI/AI routing later |
+| CMD-02 | Meaningful edits are undoable atomic transactions | COMMAND_TRANSACTION_MODEL | AI_COMMAND_CATALOG | R2C | R2C atomicity/undo tests; UAT-08 later |
+| CMD-03 | Preview does not mutate canonical state | COMMAND_TRANSACTION_MODEL | UX interaction flows | R2C | R2C preview/commit proof; UAT-08/09 later |
 | AI-01 | AI resolves intent to typed commands and shows proposal | PRODUCT_VISION | AI_COMMAND_CATALOG | later | UAT-09 |
 | AI-02 | AI never directly edits mesh/SVG/project JSON | DECISION_REGISTER | COMMAND_TRANSACTION_MODEL | all/later | architecture tests/review |
 | PERS-01 | Project uses versioned semantic schema | PROJECT_FILE_SCHEMA | DECISION_REGISTER | R2 | UAT-11 |
