@@ -4,7 +4,8 @@
 
 - Exact accepted execution base: `d7fee6d5ddb03cba7cb38b10dac785c872a21346` (`Refresh accepted baseline after R2B`).
 - Execution branch: `codex/r2c-command-history`.
-- Final HEAD: filled with the final local closeout commit before handoff.
+- Final implementation HEAD at qualification: `bf987d4d220cc66a7e1b3da6533cbddf1e2170e7`.
+- The evidence package is committed as the subsequent documentation-only closeout; the final branch HEAD is reported in the handoff because embedding a commit hash in its own commit would be self-referential.
 - Work mode: `STRICT`; mode confidence: `HIGH`.
 - Workspace write boundary: `D:\R&D\street-concept-designer`.
 - External writes: none. No push, PR, merge, global configuration change, or R3 branch was made.
