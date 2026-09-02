@@ -70,6 +70,10 @@ Statuses:
 | Layers/Map/Library top-level concepts | LOCKED | required as project complexity grows |
 | Exact palette/font/iconography | EVIDENCE_GATED | decide after real prototype visual UAT |
 | Fully customizable/dockable workspace | DEFERRED | avoid premature UI complexity |
+| Tauri 2 desktop shell | EVIDENCE_GATED/PREFERRED | R3 research gate supports bounded proof; Windows/MSVC/WebView2 qualification required before locking |
+| React + Vite application UI | EVIDENCE_GATED/PREFERRED | fits existing UX architecture; R3A must prove build/test/bridge boundary |
+| TypeScript 7 for frontend | EVIDENCE_GATED/PREFERRED | current stable native compiler; adopt only if R3A ecosystem qualification is clean |
+| Frontend transport DTO separate from project persistence DTO | LOCKED FOR R3 | project JSON must not become UI mutation API |
 | Full CAD command line | REJECTED_INITIAL | conflicts with approachability goal |
 
 ---
@@ -82,7 +86,8 @@ Statuses:
 | LHT/RHT configurable; Thailand/LHT default | LOCKED | local relevance without hard-coding |
 | Road source-of-truth = reference alignment + semantics | LOCKED | supports arbitrary plan geometry and derived views |
 | Station-based longitudinal model | LOCKED | taper/add/drop/feature lifecycle |
-| Initial alignment primitives: line + circular arc + smooth conceptual curve | LOCKED FOR R1 | sufficient initial proof; future spiral hook preserved |
+| Initial alignment primitives: line + circular arc + smooth conceptual curve | LOCKED FOR R1 | sufficient primitive proof; future spiral hook preserved |
+| Multi-segment/compound reference alignment | REQUIRED / R3B EVIDENCE_GATED | practical Road Draw UX cannot be faked by chaining independent Roads or renderer paths; joint/station/persistence semantics require dedicated proof |
 | Clothoid/spiral | DEFERRED | architecture hook only until need/UX proven |
 | Lane/component width varies by station | LOCKED | fundamental feature |
 | Turn pocket uses general lane lifecycle | LOCKED | prevents special-case technical debt |
@@ -119,7 +124,7 @@ Statuses:
 | Renderers consume derived DTO/buffers | LOCKED | renderer never canonical truth |
 | Semantic ids survive into renderer selection mapping | LOCKED | synchronized selection |
 | Local render origin before GPU float32 | LOCKED POLICY | large-coordinate stability |
-| PixiJS 2D | EVIDENCE_GATED/PREFERRED | strong candidate; production prototype must confirm |
+| PixiJS 2D WebGL | EVIDENCE_GATED/PREFERRED | R3 research gate supports R3A proof; WebGL is current production-recommended Pixi renderer; WebGPU deferred |
 | Three.js 3D | EVIDENCE_GATED/PREFERRED | strong candidate; production prototype must confirm |
 | Separate 2D and 3D geometry engines | REJECTED_INITIAL | divergence risk |
 | Photorealism before engineering 3D | REJECTED_INITIAL | wrong priority |
