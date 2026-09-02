@@ -10,9 +10,9 @@
 ## Current accepted baseline
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
-- Accepted date: 2026-09-01
-- Current phase/milestone: R2A accepted; R2B persistence/migration is the next separately gated packet
-- Last accepted milestone PR / CI: PR #16 (`R1C: qualify shared 2D and 3D derivation boundary`) merged as `48ae85927838b3fdc496f252e2df6e1255e4898f`; final-head R1C qualification run `33473865306` PASS, R1A regression `33473865400` PASS, R1B regression `33473865383` PASS, and workflow integrity `33473865597` PASS
+- Accepted date: 2026-09-02
+- Current phase/milestone: R2A and R2B accepted; R2C command/transaction/undo/redo is the next separately gated packet
+- Last accepted milestone PR / CI: PR #24 (`R2B: qualify versioned persistence and migration`) merged as `e968cdce85b7360f286c098be82e91c1efad93ce`; final-head R2B run `33583457889` PASS, R2A `33583457906` PASS, R1A `33583457901` PASS, R1B `33583457924` PASS, R1C `33583457915` PASS, and workflow integrity `33583457950` PASS
 
 ## Technology stack
 - Languages: Rust is accepted for the production engineering kernel; TypeScript remains the candidate future application/UI language
@@ -72,8 +72,8 @@ Changes must not alter the following unless explicitly approved:
 - renderer/provider separation from project engineering truth.
 
 ## Important paths
-- Source: `src/` (accepted R1 engineering kernel/shared derivation) + `crates/project-core/` (accepted R2A Project/Scenario domain package above the kernel)
-- Tests: `tests/` (accepted R1A/R1B/R1C regression/integration coverage); R2 package tests to be added by active packet
+- Source: `src/` (accepted R1 engineering kernel/shared derivation) + `crates/project-core/` (accepted R2A Project/Scenario domain package) + `crates/project-io/` (accepted R2B versioned persistence/migration package)
+- Tests: `tests/` (accepted R1A/R1B/R1C coverage) + `crates/project-core/tests/` (R2A) + `crates/project-io/tests/` (R2B); R2C tests to be added by its active packet
 - Documentation: `docs/`
 - Specifications: `specs/`
 - Execution contracts: `specs/execution/`
@@ -111,10 +111,11 @@ Changes must not alter the following unless explicitly approved:
 - No production desktop/editor shell exists yet; accepted R1 kernel source and qualification CI now exist.
 - Rust is accepted for the current R1 kernel path; no third-party geometry library has been required through R1B.
 - Current UI/rendering stack is candidate architecture only.
+- R2B persistence reconstructs canonical projects with the accepted default `TolerancePolicy`; non-default numerical policy is not persisted project state and must not become user-facing without a separate versioning decision.
 - Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
 - R1A/R1B/R1C have proven alignment/stationing, exact variable-width lifecycle breakpoints, topology, deterministic shared 2D/3D derivation, scoped semantic selection identity, and local-render-origin precision. Production editor/application integration remains unimplemented.
-- Product-file physical container remains unimplemented. R2B will prove a versioned canonical semantic document/persistence boundary without locking the final package container.
+- R2B has proven a versioned strict canonical JSON semantic document and migration boundary in `project-io`; the final physical `.scd` package/container remains intentionally unselected.
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- R2A is accepted/merged. R2B may start only under `specs/execution/R2B_PERSISTENCE_MIGRATION.md` after a new exact accepted `main` base SHA is recorded. R2C must not start automatically.
+- R2A and R2B are accepted/merged. R2C may start only under `specs/execution/R2C_COMMAND_HISTORY.md` after a new exact accepted `main` base SHA is recorded. R3 must not start automatically.
