@@ -8,8 +8,9 @@ This roadmap defines **product outcomes and gates**, not permission to implement
 
 - R0 is accepted foundation/governance work.
 - R1 is ACCEPTED/COMPLETED.
-- R2 is now packetized R2A → R2B → R2C after accepted R1 evidence.
-- R3+ remain provisional until preceding evidence is accepted.
+- R2 is ACCEPTED/COMPLETED.
+- R3 is the next product stage but remains unimplemented until a fresh editor/application execution plan is accepted.
+- R4+ remain provisional until preceding evidence is accepted.
 - Each stage requires its own bounded execution contract before coding.
 - A later stage may be split/reordered after evidence.
 - Do not preserve an earlier implementation choice merely because this roadmap mentioned it as a candidate.
@@ -92,7 +93,7 @@ R1 is not an app release.
 
 # R2 — Production Project Core
 
-Status: IN PROGRESS / R2A + R2B ACCEPTED; R2C NEXT AFTER SEPARATE EXECUTION GATE.
+Status: ACCEPTED / COMPLETED.
 
 See:
 - `specs/R2_PRODUCTION_PROJECT_CORE.md`
@@ -151,6 +152,8 @@ canonical project state survives save/reopen/undo/rebuild deterministically.
 ---
 
 # R3 — 2D Road Authoring Alpha
+
+Status: CONTROL-PLANE PLANNING NEXT; IMPLEMENTATION NOT YET AUTHORIZED.
 
 Product outcome:
 a traffic engineer can start a local project/reference image and build/edit semantic roads in 2D without CAD.
