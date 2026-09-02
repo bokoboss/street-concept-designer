@@ -88,6 +88,12 @@ apps/
 
 Exact names may vary only for a repository-grounded reason.
 
+Preferred Cargo treatment:
+- `crates/editor-bridge` is a normal member of the existing root Cargo workspace;
+- the Windows-first `apps/desktop/src-tauri` package is **excluded from the default/root workspace regression set** (for example with root `workspace.exclude`) and owns its own Tauri lock/build context;
+- this prevents ordinary Linux `cargo test --workspace` from gaining GTK/WebKit system requirements just because the Windows shell exists;
+- hosted Windows explicitly builds/tests the Tauri package.
+
 Do not move accepted R1/R2 packages merely for aesthetics.
 
 ## Candidate dependencies
@@ -532,8 +538,11 @@ If Node is already available locally:
 - `npm ci`;
 - typecheck;
 - Vite production build;
-- Playwright Chromium;
+- install Chromium hermetically with `PLAYWRIGHT_BROWSERS_PATH=0` (project-local under Playwright's package);
+- run Playwright Chromium with the same `PLAYWRIGHT_BROWSERS_PATH=0`;
 - optionally headed screenshot inspection.
+
+Do not run local `playwright install --with-deps` or `playwright install-deps` because those may modify system packages. Hosted CI may install its ephemeral runner dependencies.
 
 If Node is not available:
 - do not install globally;
@@ -580,10 +589,12 @@ Required jobs:
 
 ### Rust Linux
 - fmt;
-- strict Clippy workspace;
-- workspace check/tests;
+- strict Clippy for the existing root workspace + editor-bridge;
+- root workspace check/tests **excluding the Tauri shell package**;
 - editor-bridge tests;
 - existing kernel/project-session/project-io WASM gates where currently required.
+
+Do not install Linux GTK/WebKit packages merely to make the Windows-first Tauri shell part of generic root-workspace CI.
 
 ### Windows/MSVC
 - Rust 1.98.0 unless separately changed;
