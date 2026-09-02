@@ -190,6 +190,11 @@ Use Playwright against a web-mode/mock bridge build to test:
 
 This does not substitute for native Tauri qualification.
 
+Workspace-safety condition:
+- local Playwright browser installation must use hermetic project-local mode, e.g. `PLAYWRIGHT_BROWSERS_PATH=0`, which places browser binaries under the local Playwright package;
+- do not run local `playwright install --with-deps` / `install-deps`, because that may mutate system packages;
+- hosted CI may install ephemeral runner dependencies as part of the CI job.
+
 ## Windows local-development constraint
 
 Tauri's official Windows prerequisites require:
@@ -203,9 +208,10 @@ Therefore R3A must not silently install Visual Studio Build Tools or change the 
 Qualification strategy:
 1. Local/web visual development and Playwright through the Vite frontend/mock bridge if Node is already available.
 2. Rust bridge/application logic through normal Cargo tests that do not require linking the Tauri Windows shell locally.
-3. Hosted Windows/MSVC CI builds the actual Tauri application.
-4. Hosted Linux may build frontend/Rust layers but does not prove Windows WebView2 runtime.
-5. Do not claim actual desktop runtime UAT until a built Windows artifact is exercised on a qualified Windows machine.
+3. Keep the Tauri shell outside the default root Cargo workspace regression surface (for example via `workspace.exclude`) so Linux `cargo test --workspace` does not acquire GTK/WebKit system-dependency obligations solely because the Windows shell exists.
+4. Hosted Windows/MSVC CI builds the actual Tauri application.
+5. Hosted Linux may build frontend/Rust layers but does not prove Windows WebView2 runtime.
+6. Do not claim actual desktop runtime UAT until a built Windows artifact is exercised on a qualified Windows machine.
 
 If local Node is missing, do not globally install it automatically. Report the environment blocker and use hosted frontend qualification unless an explicitly approved project-local strategy exists.
 
