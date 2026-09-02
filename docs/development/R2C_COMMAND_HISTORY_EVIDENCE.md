@@ -4,11 +4,14 @@
 
 - Exact accepted execution base: `d7fee6d5ddb03cba7cb38b10dac785c872a21346` (`Refresh accepted baseline after R2B`).
 - Execution branch: `codex/r2c-command-history`.
-- Final implementation HEAD at qualification: `bf987d4d220cc66a7e1b3da6533cbddf1e2170e7`.
-- The evidence package is committed as the subsequent documentation-only closeout; the final branch HEAD is reported in the handoff because embedding a commit hash in its own commit would be self-referential.
+- Final implementation HEAD before evidence closeout: `192fdc34d44da0a94e1060c8ca168311455fa6b2` (implementation commit `bf987d4d220cc66a7e1b3da6533cbddf1e2170e7` plus the first documentation-only evidence commit).
+- PR: #27, open and unmerged at independent review.
+- Independent review record: PR #27 review `5085930417`, decision **PASS WITH CONDITIONS**; the only condition was this evidence-only closeout plus green final-head CI.
+- The final evidence-only commit necessarily follows the implementation SHA; PR #27 and Issue #26 record the final branch tip to avoid a self-referential commit hash in this file.
 - Work mode: `STRICT`; mode confidence: `HIGH`.
 - Workspace write boundary: `D:\R&D\street-concept-designer`.
-- External writes: none. No push, PR, merge, global configuration change, or R3 branch was made.
+- Local filesystem writes remained confined to `D:\R&D\street-concept-designer`; no external local filesystem, global, or system configuration writes occurred.
+- The control plane clarified that GitHub operations on this target repository were authorized project workflow, not prohibited external filesystem writes. The existing R2C branch was then pushed unchanged and PR #27 was opened. No merge or R3 branch was made.
 - Stage boundary: R2C only. No UI, Tauri, React, maps, assets, standards, AI runtime, persisted command log, event sourcing, autosave, crash recovery, or final package work was introduced.
 
 The accepted base and branch were verified before implementation. The branch started clean and exactly at the accepted base after origin synchronization.
@@ -161,7 +164,34 @@ Canonical project JSON was 4,851 bytes. The transparent snapshot storage proxy i
 - Linux fmt, strict workspace Clippy, workspace check/tests, explicit project-session tests, R2C benchmark, kernel WASM, project-session WASM, and project-io WASM release builds.
 - Windows/MSVC Rust 1.98.0 fmt, strict Clippy, workspace check/tests, explicit project-session tests, and release workspace build.
 
-The local GNU fallback passed the corresponding workspace, benchmark, and WASM checks. The Windows/MSVC job is defined but has not produced a hosted result because external writes are prohibited and no PR was opened. Local MSVC native execution is blocked solely by the missing Windows linker tools noted above.
+Hosted qualification on PR #27 passed:
+
+- R2C Command and History Qualification run `33594300115`: **PASS**.
+  - Linux job `100134512595`: **PASS**.
+  - Windows/MSVC Rust 1.98 job `100134512837`: **PASS**.
+- R2B regression run `33594299986`: **PASS**.
+- R2A regression run `33594300118`: **PASS**.
+- R1A regression run `33594300013`: **PASS**.
+- R1B regression run `33594300020`: **PASS**.
+- R1C regression run `33594300056`: **PASS**.
+- Engineering Workflow Integrity run `33594300096`: **PASS**.
+
+Hosted logs independently confirm:
+- R2C integration tests: **24/24 PASS**.
+- R2C revision-overflow unit test: **1/1 PASS**.
+- Kernel WASM release build: **PASS**.
+- Project-session WASM release build: **PASS**.
+- Project-io WASM release build: **PASS**.
+
+Hosted optimized Linux benchmark (500 iterations):
+- Project clone: **17.292 µs/op**.
+- Preview: **59.135 µs/op**.
+- Commit: **96.126 µs/op**.
+- Undo: **113.711 µs/op**.
+- Redo: **132.921 µs/op**.
+- Clean R1C rebuild after commit: **337.749 µs/op**.
+
+Local MSVC native execution remains unavailable on the workstation because `link.exe`/`cl.exe` are absent; hosted Windows/MSVC provides the required platform qualification.
 
 ## R2C acceptance gate matrix
 
@@ -177,7 +207,7 @@ The local GNU fallback passed the corresponding workspace, benchmark, and WASM c
 | C-G7 failed commands do not enter history | Pass | Invalid target/payload and no-op atomicity tests. |
 | C-G8 persistence and clean R1C rebuild | Pass | Commit/undo/redo save/load and rebuild integration test. |
 | C-G9 snapshot-history scale evidence | Pass | 500-iteration benchmark and 9,702-byte JSON proxy. |
-| C-G10 regressions and no scope creep | Pass locally | 114 tests, strict gates, WASM builds, and R2-only diff; hosted MSVC still pending. |
+| C-G10 regressions and no scope creep | Pass | 114 local tests plus hosted R2C/R2B/R2A/R1A/R1B/R1C and Workflow Integrity all green; R2-only diff. |
 
 ## Known limitations and scope audit
 
@@ -185,12 +215,12 @@ The local GNU fallback passed the corresponding workspace, benchmark, and WASM c
 - The accepted R2B stale-junction reopen limitation remains unchanged.
 - The benchmark reports a transparent storage proxy rather than heap allocation accounting.
 - Local Windows/MSVC native gates cannot run without `link.exe`/`cl.exe`; the workflow is prepared for hosted verification.
-- No PR was created and no branch was pushed because the execution contract explicitly set external writes to `NONE`, despite its generic Git section requesting push/PR operations.
-- Independent review remains required for final R2 acceptance.
+- The initial no-push interpretation was corrected by the control plane: GitHub push/PR operations for the target repository were explicitly authorized while local filesystem/system write restrictions remained unchanged.
+- Independent review of the actual PR diff and hosted logs found no implementation blocker. Review #5085930417 returned **PASS WITH CONDITIONS**, with this evidence-only closeout and green final-head CI as the sole remaining condition.
 - No R3 or UI work was started.
 
 ## Recommendation
 
-`REMEDIATE_R2`
+`PROCEED_TO_R3`
 
-The bounded implementation and local semantic/regression gates are green. The remaining R2 closeout evidence is the hosted Windows/MSVC workflow result and independent review, which cannot be produced within the explicit no-external-write boundary.
+All R2C implementation gates are green, hosted Linux/Windows qualification and inherited regressions are green, and independent review found no implementation blocker. Final acceptance remains contingent only on this documentation-only closeout commit retaining a green final-head CI matrix before PR #27 is merged. R3 must not start automatically.
