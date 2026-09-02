@@ -6,9 +6,11 @@ This document records the bounded R2B implementation and qualification. The
 working branch is `codex/r2b-persistence-migration`; the PR is intentionally
 unmerged and R2C was not started.
 
-The qualification PR is open and intentionally unmerged. Hosted CI completed
-successfully for the implementation head recorded below. The final evidence
-revision is documentation-only after that qualification.
+The qualification PR is open and intentionally unmerged. This remediation
+closes the independent-review F-01 strict-schema finding while preserving the
+accepted R2B architecture and behavior. Hosted CI for the remediation head
+will be recorded below; the final evidence revision will be documentation-only
+after that qualification.
 
 ## Execution identity and baseline
 
@@ -22,6 +24,8 @@ revision is documentation-only after that qualification.
 | Accepted `main` containment | `bbaa4fe5a57e8b754efd27c0d6f9f1a5821f2031` is an ancestor of `origin/main` |
 | Implementation HEAD | `8fef27c7c58bc680fa30160bfb6812315eb1d623` |
 | Hosted qualification HEAD | `a43bb6f2a491ee43ef9beb1f6cb538cbc251f855` |
+| Remediation source HEAD | `914d24e70bde68f30f3e2560585b80de1a577b69` |
+| Hosted remediation qualification HEAD | pending final remediation CI |
 | PR | [#24](https://github.com/bokoboss/street-concept-designer/pull/24), open and intentionally unmerged |
 
 Before implementation, the worktree was clean, `origin` was fetched, the
@@ -48,6 +52,34 @@ qualification therefore used the installed WinLibs GNU linker with the
 installed GNU Rust toolchain for executable tests; pinned MSVC qualification
 is delegated to the Windows CI job. The pinned 1.98 kernel WASM build runs
 locally without that native linker dependency.
+
+## Independent review finding and F-01 remediation
+
+The independent review recorded on PR #24 identified that the original
+`decode_document` path first deserialized the complete JSON document into
+`serde_json::Value` and then called `serde_json::from_value` for the selected
+DTO. JSON object entries in that intermediate map used last-write-wins
+semantics, so duplicate keys such as `schemaVersion`, `projectId`, or nested
+`widthM` could be collapsed before the strict DTO parser saw them. Consequently,
+`deny_unknown_fields` alone did not make the previous complete parsing path
+fully strict for duplicate object keys.
+
+The remediation introduces a private permissive `SchemaVersionProbe` that
+deserializes only the top-level `schemaVersion` field from the original bytes.
+It allows unrelated top-level fields, but `schemaVersion` is a known Serde
+field, so duplicate versions fail during the probe. Once the version is
+resolved, v1 uses `serde_json::from_slice::<ProjectDocumentV1>(bytes)` and
+synthetic v0 uses `serde_json::from_slice::<ProjectDocumentV0>(bytes)` on the
+same original bytes before explicit migration. The whole-project
+`serde_json::Value` intermediary and both production `from_value` calls were
+removed. `serde_json::Value` remains only as the probe's scalar value carrier,
+not as an intermediate project document.
+
+Raw JSON regressions cover both `schemaVersion` orders, conflicting and
+same-value `projectId`, nested `scenarioId`, engineering `widthM`, and Junction
+`radiusM`. Every fixture is assembled as a raw JSON string and decoded from
+bytes; no `serde_json::Value` or `json!` construction is used for the duplicate
+key input.
 
 ## Bounded scope and architecture
 
@@ -180,7 +212,10 @@ saved views.
 
 All current schema structs use `#[serde(deny_unknown_fields)]` where a struct
 has fields. Current schema enum values are closed; unsupported values fail
-typed JSON decoding. The public `PersistenceError` distinguishes:
+typed JSON decoding. These checks now receive the original JSON bytes after
+duplicate-safe version probing; the previous whole-document `Value` parse did
+not preserve duplicate-key strictness. The public `PersistenceError`
+distinguishes:
 
 ```text
 JsonSyntax
@@ -302,7 +337,7 @@ with no derived fields, and loading a moved-source-road document fails clearly.
 
 ## Fixtures and tests
 
-`crates/project-io/tests/r2b_persistence.rs` contains 10 R2B integration tests:
+`crates/project-io/tests/r2b_persistence.rs` contains 16 R2B integration tests:
 
 | Test area | Evidence |
 |---|---|
@@ -318,6 +353,7 @@ with no derived fields, and loading a moved-source-road document fails clearly.
 | `f64` | Bit-exact authored corpus including large coordinates, signed zero, sub-metre values, angles, widths, stations, and radii. |
 | Migration | Synthetic v0 loads through explicit DTO migration; repeated loads and v1 re-encoding are deterministic. |
 | Strict/corrupt inputs | Truncated/malformed JSON, missing/future/invalid versions, bad units/traffic, duplicate IDs, missing roads, invalid alignment/width/radius/manual state, candidate mismatch, reordered topology, cache-like fields, huge exponent, and null numbers. |
+| Raw duplicate-key strictness | Six raw-byte regressions reject duplicate `schemaVersion` in both orders, conflicting `projectId`, nested `scenarioId`, `widthM`, `radiusM`, and same-value `projectId`. |
 | Stale policy | Save succeeds for stale authored junction intent; load returns `CandidateStale`. |
 | Path API | Bounded ordinary native read/write round-trip. |
 
@@ -349,16 +385,16 @@ Local commands completed so far:
 | `cargo fmt --all -- --check` | PASS |
 | `cargo +stable-x86_64-pc-windows-gnu check --locked --workspace --all-targets` | PASS with Rust 1.98.0 and the installed WinLibs GNU linker fallback |
 | `cargo +stable-x86_64-pc-windows-gnu clippy --locked --workspace --all-targets --all-features -- -D warnings` | PASS with Rust 1.98.0 and the installed WinLibs GNU linker fallback |
-| `cargo test --locked --workspace --all-targets --all-features -- --nocapture` | PASS: 83 integration tests after the stale-policy fixture; all existing R1/R2A tests and R2B tests |
-| `cargo test --locked --package street-concept-designer-project-io --test r2b_persistence -- --nocapture` | PASS: 10 R2B tests |
+| `cargo test --locked --workspace --all-targets --all-features -- --nocapture` | PASS: 89 integration tests; all existing R1/R2A tests and R2B tests |
+| `cargo test --locked --package street-concept-designer-project-io --test r2b_persistence -- --nocapture` | PASS: 16 R2B tests, including all raw duplicate-key regressions |
+| `cargo bench --locked --package street-concept-designer-project-io --bench r2b_persistence -- --nocapture` | PASS: 2,000 iterations per operation |
 | `cargo build --locked --package street-concept-designer-kernel --target wasm32-unknown-unknown --release` | PASS with pinned Rust 1.98.0 |
 | `cargo +stable-x86_64-pc-windows-gnu build --locked --package street-concept-designer-project-io --target wasm32-unknown-unknown --release` | PASS with Rust 1.98.0 and the installed GNU fallback host linker |
 | Workflow v1.5.0 `setup_project.py validate .` | PASS: 8 managed files, 2 project-owned files |
 | Native pinned MSVC test/check | Not runnable locally: no `link.exe`/Windows SDK; hosted Windows job required |
 
-The workspace integration-test count is 83: 73 accepted R1/R2A tests plus 10
-R2B tests. Unit-test targets contain no additional test cases. The final report
-will include the exact post-commit `--list` result and hosted matrix status.
+The workspace integration-test count is 89: 73 accepted R1/R2A tests plus 16
+R2B tests. Unit-test targets contain no additional test cases.
 
 ## Benchmark
 
@@ -367,11 +403,11 @@ The exploratory benchmark uses a non-trivial two-scenario project and measures
 
 ```text
 document_bytes=4816
-encode Project -> JSON:       189.379 us/op
-decode JSON -> Project:       646.710 us/op
-v0 -> v1 migration/load:      643.987 us/op
-complete in-memory save/load: 851.346 us/op
-clean R1C rebuild after load: 1115.465 us/op
+encode Project -> JSON:       15.169 us/op
+decode JSON -> Project:       95.204 us/op
+v0 -> v1 migration/load:      93.548 us/op
+complete in-memory save/load: 106.937 us/op
+clean R1C rebuild after load: 193.316 us/op
 ```
 
 Platform/toolchain: Windows x86_64, Rust 1.98.0 GNU fallback with WinLibs
@@ -399,8 +435,11 @@ check/tests, explicit project-io tests, the R2B benchmark, kernel WASM,
 project-io WASM, and a pinned Rust 1.98.0 MSVC release build. Existing R1A,
 R1B, R1C, R2A, and Workflow Integrity workflows remain active regressions.
 
-Hosted qualification for source head
-`a43bb6f2a491ee43ef9beb1f6cb538cbc251f855`:
+The prior hosted qualification for source head
+`a43bb6f2a491ee43ef9beb1f6cb538cbc251f855` remains the accepted R2B baseline
+qualification. A fresh remediation qualification for source head
+`914d24e70bde68f30f3e2560585b80de1a577b69` is required before closeout and
+will be recorded with its exact run and job IDs.
 
 | Workflow | Linux job | Windows/MSVC job | Result |
 |---|---|---|---|
@@ -437,15 +476,18 @@ Hosted qualification for source head
   map calibration, camera, or render origin is persisted.
 - No standards, map, asset, presentation, export, AI, command, or history
   semantics exist in this schema.
+- Non-default `TolerancePolicy` is not canonical persisted project state. R2B
+  retains the accepted default-policy reconstruction assumption and makes no
+  persistence promise for custom numerical policies; that decision remains
+  separate before R2C/R3.
 - The local host cannot execute the pinned MSVC native matrix; hosted CI is
   required for that evidence.
 
 ## Final review checklist
 
-The implementation source was qualified at
-`a43bb6f2a491ee43ef9beb1f6cb538cbc251f855`; the evidence closeout after that
-qualification changes documentation only. PR [#24](https://github.com/bokoboss/street-concept-designer/pull/24)
-is open and unmerged, the hosted matrix above is green, the exact post-edit
-workspace count is 83 integration tests, and R2C remains unstarted. The final
-repository HEAD is the containing documentation closeout commit reported with
-the final task handoff.
+The remediation source is
+`914d24e70bde68f30f3e2560585b80de1a577b69`; the final evidence closeout will
+record the remediation hosted matrix and containing documentation commit. PR
+[#24](https://github.com/bokoboss/street-concept-designer/pull/24) is open and
+unmerged, the workspace count is 89 integration tests, the duplicate-key
+regressions are green locally, and R2C remains unstarted.
