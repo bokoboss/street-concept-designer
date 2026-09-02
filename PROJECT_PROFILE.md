@@ -11,7 +11,7 @@
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
 - Accepted date: 2026-09-02
-- Current phase/milestone: R2 Production Project Core completed; post-R2 R3 editor/application planning is next
+- Current phase/milestone: R2 completed; R3 packetized; R3A desktop/read-only 2D integration is the next bounded execution after control-plane acceptance
 - Last accepted milestone PR / CI: PR #27 (`R2C: qualify typed transactions and undo/redo`) merged as `fb933bb9c5da49225c3d6b7e52176e270c117cce`; final-head R2C run `33595026496` PASS, R2B `33595026419` PASS, R2A `33595026470` PASS, R1A `33595026424` PASS, R1B `33595026436` PASS, R1C `33595026445` PASS, and workflow integrity `33595026428` PASS
 
 ## Technology stack
@@ -108,9 +108,9 @@ Changes must not alter the following unless explicitly approved:
 - Baseline pinning policy: execution tasks must record the exact `main` base SHA at branch/worktree creation in the task/PR/evidence package; do not attempt to make an in-repository profile file self-reference its own HEAD SHA
 
 ## Current known limitations / risks
-- No production desktop/editor shell exists yet; R1 engineering kernel and the complete R2 production project core are accepted.
+- No production desktop/editor shell exists yet; R1 engineering kernel and the complete R2 production project core are accepted. R3A is intentionally read-only while the multi-segment alignment gap is handled separately in R3B.
 - Rust is accepted for the current R1 kernel path; no third-party geometry library has been required through R1B.
-- Current UI/rendering stack is candidate architecture only.
+- Current UI/rendering stack is candidate architecture only; `docs/development/R3_STACK_RESEARCH_GATE.md` authorizes a bounded R3A proof of Tauri + React/Vite/TypeScript + PixiJS WebGL under explicit conditions.
 - R2B persistence reconstructs canonical projects with the accepted default `TolerancePolicy`; non-default numerical policy is not persisted project state and must not become user-facing without a separate versioning decision.
 - Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
 - R1A/R1B/R1C have proven alignment/stationing, exact variable-width lifecycle breakpoints, topology, deterministic shared 2D/3D derivation, scoped semantic selection identity, and local-render-origin precision.
@@ -118,4 +118,4 @@ Changes must not alter the following unless explicitly approved:
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- R2 is accepted/merged. R3 must receive a fresh control-plane plan, bounded packetization, dependency research, UX scrutiny, exact accepted `main` base SHA, and explicit execution authorization before coding.
+- Execute R3A only under `specs/execution/R3A_DESKTOP_2D_INTEGRATION.md` after this post-R2 control-plane plan is accepted/merged and an exact accepted `main` base SHA is recorded. R3B+ must not start automatically.
