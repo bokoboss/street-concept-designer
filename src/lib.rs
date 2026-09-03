@@ -14,7 +14,8 @@ pub mod render;
 pub mod station;
 
 pub use alignment::{
-    Alignment, AlignmentKind, CircularArcAlignment, LineAlignment, Projection, SamplePoint,
+    Alignment, AlignmentKind, AlignmentPrimitive, AlignmentSegment, AlignmentSegmentId,
+    CircularArcAlignment, CompositeAlignment, LineAlignment, Projection, SamplePoint,
     SamplingOptions, SmoothConceptualCurve,
 };
 pub use cross_section::{

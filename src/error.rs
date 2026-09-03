@@ -11,6 +11,17 @@ pub enum KernelError {
     InvalidParameter { field: &'static str },
     /// A primitive or station range is too short to be meaningful.
     InvalidLength { operation: &'static str },
+    /// An alignment segment id is empty or otherwise not usable as a stable identity.
+    InvalidAlignmentSegmentId,
+    /// Two segments in one alignment have the same stable semantic id.
+    DuplicateAlignmentSegmentId,
+    /// Adjacent alignment segments are not coincident within the accepted policy.
+    AlignmentEndpointGap { segment_index: usize, gap_m: f64 },
+    /// Adjacent alignment segments are not tangent-continuous within the accepted policy.
+    AlignmentTangentDiscontinuity {
+        segment_index: usize,
+        angle_rad: f64,
+    },
     /// A station is outside the bounded alignment/profile range.
     StationOutOfBounds { station: f64, start: f64, end: f64 },
     /// The requested sampling budget cannot satisfy the requested criteria.
@@ -72,6 +83,22 @@ impl Display for KernelError {
             Self::NonFiniteResult { operation } => write!(f, "non-finite result: {operation}"),
             Self::InvalidParameter { field } => write!(f, "invalid parameter: {field}"),
             Self::InvalidLength { operation } => write!(f, "invalid length: {operation}"),
+            Self::InvalidAlignmentSegmentId => f.write_str("invalid alignment segment id"),
+            Self::DuplicateAlignmentSegmentId => f.write_str("duplicate alignment segment id"),
+            Self::AlignmentEndpointGap {
+                segment_index,
+                gap_m,
+            } => write!(
+                f,
+                "alignment endpoint gap before segment {segment_index}: {gap_m} m"
+            ),
+            Self::AlignmentTangentDiscontinuity {
+                segment_index,
+                angle_rad,
+            } => write!(
+                f,
+                "alignment tangent discontinuity before segment {segment_index}: {angle_rad} rad"
+            ),
             Self::StationOutOfBounds {
                 station,
                 start,

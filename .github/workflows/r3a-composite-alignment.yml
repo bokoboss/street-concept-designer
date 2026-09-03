@@ -1,0 +1,112 @@
+name: R3A Composite Alignment Qualification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-r3a-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run strict workspace lint
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Check workspace
+        run: cargo check --locked --workspace --all-targets --all-features
+
+      - name: Run inherited and R3A workspace tests
+        run: cargo test --locked --workspace --all-targets --all-features -- --nocapture
+
+      - name: Run R3A kernel tests explicitly
+        run: cargo test --locked --package street-concept-designer-kernel --test r3a_composite_alignment -- --nocapture
+
+      - name: Run R3A project-io tests explicitly
+        run: cargo test --locked --package street-concept-designer-project-io --test r3a_composite_alignment -- --nocapture
+
+      - name: Run R3A ProjectSession tests explicitly
+        run: cargo test --locked --package street-concept-designer-project-session --test r3a_composite_alignment -- --nocapture
+
+      - name: Run R3A kernel performance benchmark
+        run: cargo bench --locked --bench r3a_composite_alignment -- --nocapture
+
+      - name: Run R3A ProjectSession performance benchmark
+        run: cargo bench --locked --package street-concept-designer-project-session --bench r3a_composite_alignment -- --nocapture
+
+      - name: Build kernel WASM release artifact
+        run: cargo build --locked --package street-concept-designer-kernel --target wasm32-unknown-unknown --release
+
+      - name: Build project-core WASM release artifact
+        run: cargo build --locked --package street-concept-designer-project-core --target wasm32-unknown-unknown --release
+
+      - name: Build project-io WASM release artifact
+        run: cargo build --locked --package street-concept-designer-project-io --target wasm32-unknown-unknown --release
+
+      - name: Build project-session WASM release artifact
+        run: cargo build --locked --package street-concept-designer-project-session --target wasm32-unknown-unknown --release
+
+  qualify-r3a-windows-msvc:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install pinned MSVC Rust toolchain
+        shell: pwsh
+        run: rustup toolchain install 1.98.0-x86_64-pc-windows-msvc --profile minimal --component rustfmt --component clippy --target wasm32-unknown-unknown
+
+      - name: Show Windows/MSVC toolchain
+        shell: pwsh
+        run: |
+          rustup run 1.98.0-x86_64-pc-windows-msvc rustc -vV
+          rustup run 1.98.0-x86_64-pc-windows-msvc cargo -V
+
+      - name: Check formatting with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc fmt --all -- --check
+
+      - name: Run strict workspace lint with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Check workspace with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc check --locked --workspace --all-targets --all-features
+
+      - name: Run workspace tests with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc test --locked --workspace --all-targets --all-features -- --nocapture
+
+      - name: Run R3A kernel tests explicitly with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc test --locked --package street-concept-designer-kernel --test r3a_composite_alignment -- --nocapture
+
+      - name: Run R3A project-io tests explicitly with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc test --locked --package street-concept-designer-project-io --test r3a_composite_alignment -- --nocapture
+
+      - name: Run R3A ProjectSession tests explicitly with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc test --locked --package street-concept-designer-project-session --test r3a_composite_alignment -- --nocapture
+
+      - name: Build workspace release artifacts with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc build --locked --workspace --release
+
+      - name: Build workspace WASM release artifacts with MSVC toolchain
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc build --locked --workspace --target wasm32-unknown-unknown --release

@@ -27,3 +27,7 @@ harness = false
 [[bench]]
 name = "r1c_shared_render"
 harness = false
+
+[[bench]]
+name = "r3a_composite_alignment"
+harness = false
