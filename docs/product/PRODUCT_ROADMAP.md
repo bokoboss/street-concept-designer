@@ -152,7 +152,7 @@ canonical project state survives save/reopen/undo/rebuild deterministically.
 
 # R3 — 2D Road Authoring Alpha
 
-Status: CONTROL-PLANE PLANNED / IMPLEMENTATION NOT STARTED.
+Status: CONTROL-PLANE PLANNED / R3A IMPLEMENTED IN PR #32 BUT NOT ACCEPTED; INDEPENDENT-REVIEW REMEDIATION PENDING.
 
 Packet sequence:
 1. R3A — Composite Alignment Productionization
@@ -279,14 +279,24 @@ Expected capabilities:
 - split 2D/3D;
 - synchronized semantic selection;
 - engineering 3D materials;
-- pavement/curb/median/sidewalk meshes;
+- pavement/curb/median/sidewalk meshes generated from accepted derived engineering geometry rather than renderer-owned road calculations;
 - procedural road markings in 3D;
 - starter asset metadata/runtime;
 - starter vehicles/trees/lighting/safety assets;
+- one semantic asset with independently appropriate 2D plan and 3D representations;
+- internal declarative asset-definition/representation contracts sufficient to drive properties, placement, and rendering without requiring a public plugin API;
+- pure/deterministic representation builders where practical;
+- explicit geometry-variant versus per-instance state for repeated assets;
+- deterministic bounded seeds/variant pools for persisted presentation variation where useful;
+- geometry-variant caching plus instancing/batching where benchmark evidence supports it;
+- semantic selection identity preserved through instancing/batching, with renderer proxies only as a disposable implementation technique if needed;
 - point/along-edge/area placement;
 - deterministic asset distributions;
+- runtime-optimized versus deterministic baked/export representation paths where appropriate;
 - simple building massing;
 - saved views starter.
+
+R6 adoption gate must separately qualify the actual Three.js renderer path, including WebGL/WebGPU compatibility on representative Windows/office hardware. Pascal Editor prior art is informative but does not lock WebGPU, its scene architecture, or any dependency.
 
 Key UAT:
 - UAT-05 complete-street concept;
@@ -354,6 +364,10 @@ Expected work:
 - code-signing/SmartScreen release path;
 - dependency/license notice generation;
 - asset LOD/instancing tuning;
+- deterministic variant-cache and GPU resource lifecycle/disposal qualification;
+- batched/instanced selection and outline stress testing;
+- semantic-change-set/incremental renderer regeneration with clean-full-rebuild equivalence regression;
+- WebGL/WebGPU renderer compatibility/fallback evidence on representative office PCs where 3D adoption requires it;
 - schema migration tests;
 - security/threat review for untrusted project/assets.
 
@@ -406,6 +420,7 @@ Release claim:
 These are deliberately outside initial release dependency.
 
 Potential:
+- public plugin/API ecosystem only after internal definition/registry contracts are stable and product value justifies third-party extensibility;
 - roundabout advanced module;
 - swept-path/design-vehicle analysis;
 - traffic count overlays;
