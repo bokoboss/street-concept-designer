@@ -69,9 +69,9 @@ Project clone, preview, and commit paths.
 
 Pull request [#32](https://github.com/bokoboss/street-concept-designer/pull/32)
 is open against `main` and remains unmerged.  The runtime implementation is
-in commit `60517c05743d22d3e95f972425e6ffbc23a0f250`; the current PR head also
-contains the documentation-only follow-up commit
-`3b55e07541b82d13d8bead70248f7261fca4dce6`.
+in commit `60517c05743d22d3e95f972425e6ffbc23a0f250`; subsequent commits on
+the PR are documentation-only evidence follow-ups and do not change runtime
+behavior.
 
 The qualification runs for both commits completed successfully:
 
