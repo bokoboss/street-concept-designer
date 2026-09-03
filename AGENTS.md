@@ -43,7 +43,7 @@ Relevant specialized context:
 - production UX/editor flow: `docs/ux/UX_ARCHITECTURE.md`, `docs/ux/LOW_FIDELITY_WORKSPACE_SPEC.md`, `docs/ux/INTERACTION_FLOWS.md`, and `docs/ux/UX_REVIEW_GATE.md`;
 - human acceptance: `docs/uat/GOLDEN_UAT_CASES.md`;
 - requirement traceability: `docs/product/REQUIREMENTS_TRACEABILITY.md`;
-- post-R1/R2 production-core work: `docs/development/POST_R1_PRODUCTION_READINESS.md` plus the active R2 execution contract;
+- post-R2/R3 editor work: `docs/development/POST_R2_EDITOR_READINESS.md`, `specs/R3_2D_ROAD_AUTHORING_ALPHA.md`, and the active R3 execution contract; retain `POST_R1_PRODUCTION_READINESS.md` only as historical R2 planning context;
 - road configurations/generators: `docs/product/STARTER_ROAD_CONFIGURATION_CATALOG.md`;
 - terminology ambiguities: `docs/product/DOMAIN_GLOSSARY.md`.
 
