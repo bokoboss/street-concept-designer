@@ -67,7 +67,20 @@ Project clone, preview, and commit paths.
 
 ## Hosted qualification
 
-The R3A workflow adds Linux native/WASM and Windows/MSVC qualification. Hosted
-run ids and the pull-request id must be appended after the branch is pushed;
-this record must not be read as a claim that hosted qualification or
-independent review has completed.
+Pull request [#32](https://github.com/bokoboss/street-concept-designer/pull/32)
+is open against `main` and remains unmerged.  The head is
+`60517c05743d22d3e95f972425e6ffbc23a0f250`.
+
+The qualification runs for that head completed successfully:
+
+- R3A Composite Alignment Qualification: run `33738726949`
+  ([Linux/WASM/benchmarks and Windows/MSVC](https://github.com/bokoboss/street-concept-designer/actions/runs/33738726949));
+- Engineering Workflow Integrity: run `33738726978`;
+- inherited R1A/R1B/R1C qualification: runs `33738726910`, `33738726929`,
+  `33738726938`;
+- inherited R2A/R2B/R2C qualification: runs `33738726930`, `33738726943`,
+  `33738726950`.
+
+The head reported 15 completed check runs, all with `success` conclusions.
+This is execution evidence, not independent review or final engineering
+acceptance; the PR was intentionally left unmerged.
