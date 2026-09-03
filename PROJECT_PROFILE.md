@@ -11,12 +11,12 @@
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
 - Accepted date: 2026-09-03
-- Current phase/milestone: R2 Production Project Core is accepted/completed; R3 control-plane planning is accepted; R3A Composite Alignment (Issue #31) is the next separately gated implementation packet
+- Current phase/milestone: R2 Production Project Core is accepted/completed; R3 control-plane planning is accepted; R3A Composite Alignment is implemented in open PR #32 but not accepted. Independent review at PR head `95cfea566748e8be3a77db2885d04e37418ee7a5` returned `REMEDIATE` for persistence-version semantics; R3B remains blocked
 - Last accepted milestone PR / CI: control-plane PR #29 (`Plan post-R2 baseline and R3 road-authoring sequence`) squash-merged as `a354f49cc063721845cd4a92351fe0e989cd22cb`; PR-head Workflow Integrity `33713149482`, R1A `33713149563`, R1B `33713149486`, R1C `33713149521`, R2A `33713149554`, R2B `33713149594`, and R2C `33713149653` all PASS
 
 ## Technology stack
 - Languages: Rust is accepted for the production engineering kernel; TypeScript remains the candidate future application/UI language
-- Frameworks: R3 research supports Tauri 2 + React/TypeScript + Vite + PixiJS as the bounded desktop/2D adoption path; exact versions and the Rust-to-UI bridge remain evidence-gated for R3B. Three.js and MapLibre are intentionally not part of the first R3 runtime packet
+- Frameworks: R3 research supports Tauri 2 + React/TypeScript + Vite + PixiJS as the bounded desktop/2D adoption path; exact versions and the Rust-to-UI bridge remain evidence-gated for R3B. Three.js and MapLibre are intentionally not part of the first R3 runtime packet. Pascal Editor/Nature-plugin prior art informs later R6/R8 asset/3D patterns but adopts no dependency or framework by itself
 - Package manager: Cargo established for the Rust kernel; frontend package manager not yet established
 - Supported OS/runtime: Windows-first desktop target; Windows x64 first. Product requires per-user installer plus no-install Portable distribution; final OS/runtime compatibility remains qualification-gated
 
@@ -74,7 +74,7 @@ Changes must not alter the following unless explicitly approved:
 ## Important paths
 - Source: `src/` (accepted R1 engineering kernel/shared derivation) + `crates/project-core/` (accepted R2A Project/Scenario domain package) + `crates/project-io/` (accepted R2B persistence/migration) + `crates/project-session/` (accepted R2C command/history boundary)
 - Tests: `tests/` (accepted R1A/R1B/R1C coverage) + `crates/project-core/tests/` (R2A) + `crates/project-io/tests/` (R2B) + `crates/project-session/tests/` (R2C)
-- Documentation: `docs/`
+- Documentation: `docs/` (including `docs/research/PASCAL_EDITOR_PRIOR_ART_REVIEW.md` for future R6/R8 representation prior art)
 - Specifications: `specs/`
 - Execution contracts: `specs/execution/`
 - Development workflow templates: `docs/development/templates/`
@@ -113,9 +113,10 @@ Changes must not alter the following unless explicitly approved:
 - Current UI/rendering stack is candidate architecture only.
 - R2B persistence reconstructs canonical projects with the accepted default `TolerancePolicy`; non-default numerical policy is not persisted project state and must not become user-facing without a separate versioning decision.
 - Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
-- R1A/R1B/R1C have proven primitive alignment/stationing, exact variable-width lifecycle breakpoints, topology, deterministic shared 2D/3D derivation, scoped semantic selection identity, and local-render-origin precision. A Road still owns only one line/arc/smooth alignment primitive; R3A must productionize an ordered composite alignment before Road Draw UI.
-- R2B has proven a strict versioned canonical JSON semantic document and migration boundary in `project-io`; R3A is expected to introduce the next schema version for composite alignment, while the final physical `.scd` package/container remains intentionally unselected.
+- R1A/R1B/R1C have proven primitive alignment/stationing, exact variable-width lifecycle breakpoints, topology, deterministic shared 2D/3D derivation, scoped semantic selection identity, and local-render-origin precision. Accepted `main` still has the pre-R3A single-primitive Road alignment; PR #32 contains the candidate ordered composite implementation but remains unaccepted until the schema-version remediation and re-review pass.
+- R2B has proven a strict versioned canonical JSON semantic document and migration boundary in `project-io`. R3A PR #32 introduces candidate schema v2 for composite alignment, but independent review found that schema v0 was accidentally broadened to accept a v2-shaped composite document; this must be remediated before R3A acceptance. The final physical `.scd` package/container remains intentionally unselected.
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- Execute only R3A under Issue #31 and `specs/execution/R3A_COMPOSITE_ALIGNMENT.md`. Issue #31 records the exact accepted `main` execution base after this profile refresh. R3B+ must not start automatically.
+- Remediate only the persistence/schema-version findings on R3A PR #32 / Issue #31, rerun final-head R3A + inherited R1/R2/workflow qualification, then repeat independent review. Do not merge PR #32 and do not start R3B until that acceptance passes.
+- The Pascal prior-art documentation is planning-only for future R6/R8 asset/3D architecture and must not expand the active R3 remediation scope.
