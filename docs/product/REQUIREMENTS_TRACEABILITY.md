@@ -28,6 +28,7 @@ This matrix is intentionally higher-level than unit tests.
 | G-05 | Lane add/drop/taper use general lifecycle | SEMANTIC_MODEL | R1A contract | R1A | R1A fixtures; UAT-03 |
 | G-06 | Turn pocket uses general lane lifecycle, not polygon overlay | DECISION_REGISTER | AI_COMMAND_CATALOG / Road Configuration Catalog | R1A/R3 | R1A proof; UAT-01 |
 | G-07 | Equal semantic input yields deterministic equivalent output | ENGINEERING_CONSTITUTION | precision/tolerance policy | R1A+ | automated evidence |
+| G-08 | One Road can own a stable ordered multi-segment reference alignment with one cumulative station domain | PRODUCT_VISION / INTERACTION_FLOWS | R3_2D_ROAD_AUTHORING_ALPHA / R3A_COMPOSITE_ALIGNMENT | R3A | composite alignment fixtures; UAT-01/03 later |
 | J-01 | Junction is first-class semantic object | SEMANTIC_MODEL | R1B contract | R1B | UAT-02 |
 | J-02 | Geometry crossing does not silently create topology | SEMANTIC_MODEL | Candidate Junction UX / Selection-Snapping Model | R1B/R4 | UAT-01/02 |
 | J-03 | Per-corner junction geometry is independently editable | UX/semantic baseline | R1B | R1B/R4 | UAT-02 |
@@ -60,6 +61,7 @@ This matrix is intentionally higher-level than unit tests.
 | PERS-04 | Scenario duplication creates independent engineering state while preserving internal semantic lineage ids | SEMANTIC_MODEL / DECISION_REGISTER | R2_PRODUCTION_PROJECT_CORE | R2A | R2A isolation/identity fixtures; UAT-03 later |
 | PERS-05 | Project-global semantic references scope scenario-local ids by ScenarioId | DECISION_REGISTER | R2_PRODUCTION_PROJECT_CORE | R2A | duplicate-id cross-scenario fixture |
 | PERS-06 | Persistence stores authored semantic Junction state and rebuilds disposable geometry | PROJECT_FILE_SCHEMA / R1B evidence | R2B_PERSISTENCE_MIGRATION | R2B | round-trip + clean R1C rebuild |
+| PERS-07 | Existing schema-v1 single-primitive alignments migrate deterministically to the composite-alignment schema without changing engineering meaning | PROJECT_FILE_SCHEMA / R3A scrutiny | R3A_COMPOSITE_ALIGNMENT | R3A | v1 migration fixtures + clean R1C rebuild |
 | CMD-04 | Locked Scenario rejects committed engineering mutation | COMMAND_TRANSACTION_MODEL / scenario policy | R2C_COMMAND_HISTORY | R2C | command lock tests |
 | CMD-05 | Stale proposal/revision is rejected explicitly | COMMAND_TRANSACTION_MODEL | R2C_COMMAND_HISTORY | R2C | stale-revision tests |
 | EXP-01 | Engineering export works without basemap | EXPORT_POLICY | MAP_BASEMAP_POLICY | R7 | UAT-01/06 |
@@ -70,6 +72,7 @@ This matrix is intentionally higher-level than unit tests.
 | Q-03 | Agent completion claim alone is insufficient | Engineering workflow | AGENTS.md | all | PR/CI/evidence |
 | L-01 | Third-party dependencies require explicit version/license/adoption evidence | dependency governance | DEPENDENCY_LICENSE_REGISTER | R1+ | PR review |
 | L-02 | Competitor code/assets are not copied without license rights | research policy | DEPENDENCY_LICENSE_REGISTER / Asset Pipeline | all | review/license evidence |
+| APP-01 | Desktop R3 uses exactly one authoritative semantic ProjectSession; renderer/frontend state cannot become a second engineering model | ENGINEERING_CONSTITUTION / R3 application-stack research | R3B runtime/binding proof | R3B | bridge comparator + semantic selection/rebuild evidence |
 
 ---
 

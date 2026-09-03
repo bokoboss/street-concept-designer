@@ -1,6 +1,6 @@
 # Decision Register
 
-Baseline: 2026-09-01
+Baseline: 2026-09-03
 
 ## Purpose
 
@@ -83,6 +83,7 @@ Statuses:
 | Road source-of-truth = reference alignment + semantics | LOCKED | supports arbitrary plan geometry and derived views |
 | Station-based longitudinal model | LOCKED | taper/add/drop/feature lifecycle |
 | Initial alignment primitives: line + circular arc + smooth conceptual curve | LOCKED FOR R1 | sufficient initial proof; future spiral hook preserved |
+| One Road owns an ordered composite alignment of stable primitive segments | EVIDENCE_GATED / R3A REQUIRED | post-R2 scrutiny found single-primitive Road alignment insufficient for production Road Draw; must preserve one Road identity and cumulative station domain |
 | Clothoid/spiral | DEFERRED | architecture hook only until need/UX proven |
 | Lane/component width varies by station | LOCKED | fundamental feature |
 | Turn pocket uses general lane lifecycle | LOCKED | prevents special-case technical debt |
@@ -119,7 +120,10 @@ Statuses:
 | Renderers consume derived DTO/buffers | LOCKED | renderer never canonical truth |
 | Semantic ids survive into renderer selection mapping | LOCKED | synchronized selection |
 | Local render origin before GPU float32 | LOCKED POLICY | large-coordinate stability |
-| PixiJS 2D | EVIDENCE_GATED/PREFERRED | strong candidate; production prototype must confirm |
+| PixiJS 2D | EVIDENCE_GATED/PREFERRED | R3 research supports adoption through the bounded R3B production prototype; exact version/license/transitives still require adoption evidence |
+| R3 desktop/frontend = Tauri 2 + React/TypeScript + Vite | EVIDENCE_GATED/PREFERRED | fits Windows-first offline static desktop architecture; R3B must qualify exact dependency pins and Windows runtime |
+| R3 semantic-session bridge = WASM vs native Tauri IPC | EVIDENCE_GATED / R3B REQUIRED | benchmark representative preview/scene transfer and choose exactly one authoritative ProjectSession owner |
+| Dual native + WASM semantic sessions | REJECTED | creates synchronization/stale-state risk and violates single semantic source-of-truth |
 | Three.js 3D | EVIDENCE_GATED/PREFERRED | strong candidate; production prototype must confirm |
 | Separate 2D and 3D geometry engines | REJECTED_INITIAL | divergence risk |
 | Photorealism before engineering 3D | REJECTED_INITIAL | wrong priority |

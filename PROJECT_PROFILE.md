@@ -10,13 +10,13 @@
 ## Current accepted baseline
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
-- Accepted date: 2026-09-02
-- Current phase/milestone: R2A and R2B accepted; R2C command/transaction/undo/redo is the next separately gated packet
-- Last accepted milestone PR / CI: PR #24 (`R2B: qualify versioned persistence and migration`) merged as `e968cdce85b7360f286c098be82e91c1efad93ce`; final-head R2B run `33583457889` PASS, R2A `33583457906` PASS, R1A `33583457901` PASS, R1B `33583457924` PASS, R1C `33583457915` PASS, and workflow integrity `33583457950` PASS
+- Accepted date: 2026-09-03
+- Current phase/milestone: R2 Production Project Core is accepted/completed; R3 2D Road Authoring Alpha is control-plane planned, with R3A Composite Alignment as the first separately gated implementation packet
+- Last accepted milestone PR / CI: PR #27 (`R2C: qualify typed transactions and undo/redo`) squash-merged as `fb933bb9c5da49225c3d6b7e52176e270c117cce`; final-head R2C `33595026496` PASS, R2B `33595026419` PASS, R2A `33595026470` PASS, R1A `33595026424` PASS, R1B `33595026436` PASS, R1C `33595026445` PASS, and workflow integrity `33595026428` PASS
 
 ## Technology stack
 - Languages: Rust is accepted for the production engineering kernel; TypeScript remains the candidate future application/UI language
-- Frameworks: candidate desktop/UI stack remains Tauri 2 + React; PixiJS and Three.js remain reasonable renderer candidates after R1C but are not yet adopted; MapLibre remains under evaluation
+- Frameworks: R3 research supports Tauri 2 + React/TypeScript + Vite + PixiJS as the bounded desktop/2D adoption path; exact versions and the Rust-to-UI bridge remain evidence-gated for R3B. Three.js and MapLibre are intentionally not part of the first R3 runtime packet
 - Package manager: Cargo established for the Rust kernel; frontend package manager not yet established
 - Supported OS/runtime: Windows-first desktop target; Windows x64 first. Product requires per-user installer plus no-install Portable distribution; final OS/runtime compatibility remains qualification-gated
 
@@ -72,8 +72,8 @@ Changes must not alter the following unless explicitly approved:
 - renderer/provider separation from project engineering truth.
 
 ## Important paths
-- Source: `src/` (accepted R1 engineering kernel/shared derivation) + `crates/project-core/` (accepted R2A Project/Scenario domain package) + `crates/project-io/` (accepted R2B versioned persistence/migration package)
-- Tests: `tests/` (accepted R1A/R1B/R1C coverage) + `crates/project-core/tests/` (R2A) + `crates/project-io/tests/` (R2B); R2C tests to be added by its active packet
+- Source: `src/` (accepted R1 engineering kernel/shared derivation) + `crates/project-core/` (accepted R2A Project/Scenario domain package) + `crates/project-io/` (accepted R2B persistence/migration) + `crates/project-session/` (accepted R2C command/history boundary)
+- Tests: `tests/` (accepted R1A/R1B/R1C coverage) + `crates/project-core/tests/` (R2A) + `crates/project-io/tests/` (R2B) + `crates/project-session/tests/` (R2C)
 - Documentation: `docs/`
 - Specifications: `specs/`
 - Execution contracts: `specs/execution/`
@@ -108,14 +108,14 @@ Changes must not alter the following unless explicitly approved:
 - Baseline pinning policy: execution tasks must record the exact `main` base SHA at branch/worktree creation in the task/PR/evidence package; do not attempt to make an in-repository profile file self-reference its own HEAD SHA
 
 ## Current known limitations / risks
-- No production desktop/editor shell exists yet; accepted R1 kernel source and qualification CI now exist.
+- No production desktop/editor shell exists yet; R3 application stack remains unadopted until the R3B bridge/runtime proof.
 - Rust is accepted for the current R1 kernel path; no third-party geometry library has been required through R1B.
 - Current UI/rendering stack is candidate architecture only.
 - R2B persistence reconstructs canonical projects with the accepted default `TolerancePolicy`; non-default numerical policy is not persisted project state and must not become user-facing without a separate versioning decision.
 - Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
-- R1A/R1B/R1C have proven alignment/stationing, exact variable-width lifecycle breakpoints, topology, deterministic shared 2D/3D derivation, scoped semantic selection identity, and local-render-origin precision. Production editor/application integration remains unimplemented.
-- R2B has proven a versioned strict canonical JSON semantic document and migration boundary in `project-io`; the final physical `.scd` package/container remains intentionally unselected.
+- R1A/R1B/R1C have proven primitive alignment/stationing, exact variable-width lifecycle breakpoints, topology, deterministic shared 2D/3D derivation, scoped semantic selection identity, and local-render-origin precision. A Road still owns only one line/arc/smooth alignment primitive; R3A must productionize an ordered composite alignment before Road Draw UI.
+- R2B has proven a strict versioned canonical JSON semantic document and migration boundary in `project-io`; R3A is expected to introduce the next schema version for composite alignment, while the final physical `.scd` package/container remains intentionally unselected.
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- R2A and R2B are accepted/merged. R2C may start only under `specs/execution/R2C_COMMAND_HISTORY.md` after a new exact accepted `main` base SHA is recorded. R3 must not start automatically.
+- Merge the post-R2/R3 control-plane baseline, create the R3 umbrella + R3A Issues from the resulting exact `main` SHA, then execute only `specs/execution/R3A_COMPOSITE_ALIGNMENT.md`. R3B+ must not start automatically.
