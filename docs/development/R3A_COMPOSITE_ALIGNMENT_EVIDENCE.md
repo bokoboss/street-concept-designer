@@ -68,19 +68,26 @@ Project clone, preview, and commit paths.
 ## Hosted qualification
 
 Pull request [#32](https://github.com/bokoboss/street-concept-designer/pull/32)
-is open against `main` and remains unmerged.  The head is
-`60517c05743d22d3e95f972425e6ffbc23a0f250`.
+is open against `main` and remains unmerged.  The runtime implementation is
+in commit `60517c05743d22d3e95f972425e6ffbc23a0f250`; the current PR head also
+contains the documentation-only follow-up commit
+`3b55e07541b82d13d8bead70248f7261fca4dce6`.
 
-The qualification runs for that head completed successfully:
+The qualification runs for both commits completed successfully:
 
-- R3A Composite Alignment Qualification: run `33738726949`
+- implementation commit R3A Composite Alignment Qualification: run `33738726949`
   ([Linux/WASM/benchmarks and Windows/MSVC](https://github.com/bokoboss/street-concept-designer/actions/runs/33738726949));
-- Engineering Workflow Integrity: run `33738726978`;
-- inherited R1A/R1B/R1C qualification: runs `33738726910`, `33738726929`,
+- implementation commit Engineering Workflow Integrity: run `33738726978`;
+- implementation commit inherited R1A/R1B/R1C qualification: runs `33738726910`, `33738726929`,
   `33738726938`;
-- inherited R2A/R2B/R2C qualification: runs `33738726930`, `33738726943`,
+- implementation commit inherited R2A/R2B/R2C qualification: runs `33738726930`, `33738726943`,
   `33738726950`.
+- documentation follow-up commit R3A qualification: run `33739301696`;
+- documentation follow-up commit inherited/workflow qualification: runs
+  `33739301713`, `33739301678`, `33739301646`, `33739301671`, `33739301667`,
+  `33739301723`, `33739301648`.
 
-The head reported 15 completed check runs, all with `success` conclusions.
-This is execution evidence, not independent review or final engineering
-acceptance; the PR was intentionally left unmerged.
+All listed runs completed successfully.  The final PR check state is
+authoritative for the current head because this evidence record is itself
+versioned on the branch.  This is execution evidence, not independent review
+or final engineering acceptance; the PR was intentionally left unmerged.
