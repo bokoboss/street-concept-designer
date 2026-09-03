@@ -11,8 +11,8 @@
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
 - Accepted date: 2026-09-03
-- Current phase/milestone: R2 Production Project Core is accepted/completed; R3 2D Road Authoring Alpha is control-plane planned, with R3A Composite Alignment as the first separately gated implementation packet
-- Last accepted milestone PR / CI: PR #27 (`R2C: qualify typed transactions and undo/redo`) squash-merged as `fb933bb9c5da49225c3d6b7e52176e270c117cce`; final-head R2C `33595026496` PASS, R2B `33595026419` PASS, R2A `33595026470` PASS, R1A `33595026424` PASS, R1B `33595026436` PASS, R1C `33595026445` PASS, and workflow integrity `33595026428` PASS
+- Current phase/milestone: R2 Production Project Core is accepted/completed; R3 control-plane planning is accepted; R3A Composite Alignment (Issue #31) is the next separately gated implementation packet
+- Last accepted milestone PR / CI: control-plane PR #29 (`Plan post-R2 baseline and R3 road-authoring sequence`) squash-merged as `a354f49cc063721845cd4a92351fe0e989cd22cb`; PR-head Workflow Integrity `33713149482`, R1A `33713149563`, R1B `33713149486`, R1C `33713149521`, R2A `33713149554`, R2B `33713149594`, and R2C `33713149653` all PASS
 
 ## Technology stack
 - Languages: Rust is accepted for the production engineering kernel; TypeScript remains the candidate future application/UI language
@@ -118,4 +118,4 @@ Changes must not alter the following unless explicitly approved:
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- Merge the post-R2/R3 control-plane baseline, create the R3 umbrella + R3A Issues from the resulting exact `main` SHA, then execute only `specs/execution/R3A_COMPOSITE_ALIGNMENT.md`. R3B+ must not start automatically.
+- Execute only R3A under Issue #31 and `specs/execution/R3A_COMPOSITE_ALIGNMENT.md`. Issue #31 records the exact accepted `main` execution base after this profile refresh. R3B+ must not start automatically.
