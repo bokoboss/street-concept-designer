@@ -433,7 +433,6 @@ Potential:
 - terrain/vertical alignment;
 - AI natural-language copilot;
 - AI alternative generation;
-- plugin/API ecosystem;
 - cloud/collaboration.
 
 Each optional module requires a separate product justification and architecture gate.
