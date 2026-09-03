@@ -1,6 +1,6 @@
 # Product Roadmap
 
-Baseline: post-R1 production plan (2026-09-01).
+Baseline: post-R2 editor plan (2026-09-03).
 
 ## Roadmap policy
 
@@ -8,8 +8,8 @@ This roadmap defines **product outcomes and gates**, not permission to implement
 
 - R0 is accepted foundation/governance work.
 - R1 is ACCEPTED/COMPLETED.
-- R2 is now packetized R2A → R2B → R2C after accepted R1 evidence.
-- R3+ remain provisional until preceding evidence is accepted.
+- R2 is ACCEPTED/COMPLETED after R2A → R2B → R2C independent acceptance.
+- R3 is control-plane packetized after post-R2 scrutiny; R4+ remain provisional until preceding evidence is accepted.
 - Each stage requires its own bounded execution contract before coding.
 - A later stage may be split/reordered after evidence.
 - Do not preserve an earlier implementation choice merely because this roadmap mentioned it as a candidate.
@@ -92,7 +92,7 @@ R1 is not an app release.
 
 # R2 — Production Project Core
 
-Status: IN PROGRESS / R2A + R2B ACCEPTED; R2C NEXT AFTER SEPARATE EXECUTION GATE.
+Status: ACCEPTED / COMPLETED.
 
 See:
 - `specs/R2_PRODUCTION_PROJECT_CORE.md`
@@ -151,6 +151,25 @@ canonical project state survives save/reopen/undo/rebuild deterministically.
 ---
 
 # R3 — 2D Road Authoring Alpha
+
+Status: CONTROL-PLANE PLANNED / IMPLEMENTATION NOT STARTED.
+
+Packet sequence:
+1. R3A — Composite Alignment Productionization
+2. R3B — Desktop Runtime / Binding / 2D Renderer Proof
+3. R3C — Road Authoring Commands & Generic Configurations
+4. R3D — Workspace / Selection / Road Draw & Alignment Edit
+5. R3E — Cross Section / Lane Lifecycle / Turn Pocket
+6. R3F — Local Reference Image / Calibration / Persistence
+7. R3G — Integrated R3 UAT / Qualification
+
+Post-R2 scrutiny found that the accepted R1 Road owns only one line/arc/smooth alignment primitive. R3 Road Draw must not fake one user road as multiple Road objects, so R3A is the mandatory first packet.
+
+See:
+- `specs/R3_2D_ROAD_AUTHORING_ALPHA.md`
+- `docs/development/POST_R2_EDITOR_READINESS.md`
+- `docs/development/R3_APPLICATION_STACK_RESEARCH.md`
+- `specs/execution/R3A_COMPOSITE_ALIGNMENT.md`
 
 Product outcome:
 a traffic engineer can start a local project/reference image and build/edit semantic roads in 2D without CAD.
