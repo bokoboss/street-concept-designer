@@ -21,6 +21,31 @@ For every needed asset:
    - never rely on a remote asset that can disappear silently.
 5. If none of these paths are acceptable, mark the asset blocked rather than assigning manual production work to the user.
 
+## Procedural representation contract
+
+For generated or normalized presentation assets, separate expensive geometry generation from cheap instance placement whenever the asset family permits it.
+
+A future representation builder should be deterministic for its declared geometry inputs:
+
+```text
+geometry variant spec
+  -> deterministic builder or normalized model lookup
+  -> reusable geometry/material resources
+```
+
+Per-instance placement then supplies semantic identity plus transform/attachment data without regenerating the variant.
+
+When randomized presentation is persisted:
+- record the seed or chosen stable variant;
+- prefer bounded variant pools when that preserves acceptable visual diversity;
+- never regenerate a materially different scene on save/reopen merely because a runtime RNG changed.
+
+Renderer variant caches and instance buffers are disposable. Deleting them must allow a deterministic clean rebuild from project/asset state.
+
+Runtime representation may differ from export representation. For example, an editor may render many trees/vehicles with instancing while an export path emits a deterministic baked/static representation. Both paths must preserve physical scale, semantic ownership/provenance, and equivalent visible placement.
+
+Selection/picking of instanced assets must resolve directly to the semantic object id through instance metadata/index mapping or a proven proxy mechanism; do not make renderer mesh identity canonical.
+
 ## Pipeline A — Procedural markings
 
 Examples:
@@ -84,6 +109,9 @@ Suitable for code-generated low/medium-detail assets:
 
 Requirements:
 - real-world dimensions;
+- deterministic geometry generation for equal declared inputs where generation is procedural;
+- explicit geometry-variant inputs versus per-instance transform inputs when repeated use is expected;
+- bounded/reproducible variation strategy when randomized appearance is persisted;
 - consistent world orientation;
 - predictable pivot;
 - efficient geometry;
@@ -178,3 +206,8 @@ Presentation props additionally need performance/LOD checks where appropriate.
 ## User-facing principle
 
 The user selects intent and engineering parameters. The system handles geometry/artwork/model generation. Manual asset editing is an advanced escape hatch, not a prerequisite for normal use.
+
+
+## Prior-art note
+
+Pascal Editor / `plugin-trees` is retained as prior art for deterministic procedural props, geometry variant caching, instancing, 2D/3D representation separation, and runtime-versus-baked rendering. See `docs/research/PASCAL_EDITOR_PRIOR_ART_REVIEW.md`. No Pascal dependency is authorized by this note.
