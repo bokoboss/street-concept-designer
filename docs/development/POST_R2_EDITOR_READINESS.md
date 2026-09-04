@@ -44,14 +44,14 @@ The project has evidence-backed foundations for:
 
 ### 1. Composite-alignment blocker — RESOLVED BY ACCEPTED R3A
 
-The accepted runtime `Alignment` is currently one of:
+Before R3A, the accepted runtime `Alignment` was one of:
 - Line;
 - CircularArc;
 - SmoothConceptualCurve.
 
-One Road therefore cannot yet own an ordered line/arc/curve sequence.
+One Road therefore could not yet own an ordered line/arc/curve sequence.
 
-This is acceptable as an R1 architecture proof, but it is not sufficient for production Road Draw/Edit. Splitting one user road into multiple Road objects would corrupt the intended abstraction:
+That was acceptable as an R1 architecture proof, but not sufficient for production Road Draw/Edit. Splitting one user road into multiple Road objects would corrupt the intended abstraction:
 - one road identity;
 - one station domain;
 - one cross-section/lane lifecycle;
