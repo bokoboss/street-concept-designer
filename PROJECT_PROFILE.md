@@ -10,9 +10,9 @@
 ## Current accepted baseline
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
-- Accepted date: 2026-09-03
-- Current phase/milestone: R2 Production Project Core is accepted/completed; R3 control-plane planning is accepted; R3A Composite Alignment (Issue #31) is the next separately gated implementation packet
-- Last accepted milestone PR / CI: control-plane PR #29 (`Plan post-R2 baseline and R3 road-authoring sequence`) squash-merged as `a354f49cc063721845cd4a92351fe0e989cd22cb`; PR-head Workflow Integrity `33713149482`, R1A `33713149563`, R1B `33713149486`, R1C `33713149521`, R2A `33713149554`, R2B `33713149594`, and R2C `33713149653` all PASS
+- Accepted date: 2026-09-04
+- Current phase/milestone: R2 Production Project Core and R3A Composite Alignment Productionization are accepted/completed; R3B Desktop Runtime / Binding / 2D Renderer Proof is the next separately gated control-plane packet and has not started
+- Last accepted milestone PR / CI: R3A PR #32 (`R3A: Composite Alignment Productionization`) independently re-reviewed `PASS` / scrutinized `GO` at accepted PR head `943d068e9351d44920f8048da21af22b2aabc459`, then squash-merged as `127aa01556eeb73c1daca160b3e2fa68e211dca8`; final-head Workflow Integrity `33829933401`, R1A `33829933407`, R1B `33829933385`, R1C `33829933448`, R2A `33829933507`, R2B `33829933436`, R2C `33829933420`, and R3A `33829933455` all PASS
 
 ## Technology stack
 - Languages: Rust is accepted for the production engineering kernel; TypeScript remains the candidate future application/UI language
@@ -113,9 +113,9 @@ Changes must not alter the following unless explicitly approved:
 - Current UI/rendering stack is candidate architecture only.
 - R2B persistence reconstructs canonical projects with the accepted default `TolerancePolicy`; non-default numerical policy is not persisted project state and must not become user-facing without a separate versioning decision.
 - Thai standards sources are catalogued but not yet extracted/verified to page-level numeric rule profiles.
-- R1A/R1B/R1C have proven primitive alignment/stationing, exact variable-width lifecycle breakpoints, topology, deterministic shared 2D/3D derivation, scoped semantic selection identity, and local-render-origin precision. A Road still owns only one line/arc/smooth alignment primitive; R3A must productionize an ordered composite alignment before Road Draw UI.
-- R2B has proven a strict versioned canonical JSON semantic document and migration boundary in `project-io`; R3A is expected to introduce the next schema version for composite alignment, while the final physical `.scd` package/container remains intentionally unselected.
+- R1A/R1B/R1C established the geometry/topology/shared-render proof, and accepted R3A now productionizes one Road-owned ordered composite alignment with stable segment ids, cumulative stationing, tangent-continuity validation, road-global CrossSection/lane lifecycle, deterministic whole-alignment queries, and preserved shared 2D/3D derivation.
+- R2B established the strict persistence boundary; accepted R3A advances the canonical writer to schema v2 for composite alignment. Historical v1 single-primitive documents migrate deterministically to one `segment-0`, historical v0 remains the single v1-shaped/`"metres"` contract, and v2-shaped documents mislabeled as v0 are rejected. The final physical `.scd` package/container remains intentionally unselected.
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- Execute only R3A under Issue #31 and `specs/execution/R3A_COMPOSITE_ALIGNMENT.md`. Issue #31 records the exact accepted `main` execution base after this profile refresh. R3B+ must not start automatically.
+- Establish and scrutinize the bounded R3B execution contract from the accepted R3A baseline. R3B must run the planned WASM-direct versus native Tauri IPC bridge comparator, qualify the desktop/2D stack and exact dependency licenses/versions, and select exactly one authoritative `ProjectSession` owner before production adoption. Do not start R3B implementation automatically from R3A acceptance.
