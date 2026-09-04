@@ -9,11 +9,11 @@ use std::fmt::{Display, Formatter};
 use serde::Deserialize;
 use serde_json::Value;
 use street_concept_designer_kernel::{
-    Alignment, AuthoredJunctionSnapshot, ComponentId, ComponentKind, CrossSection,
-    CrossSectionComponent, CrossingRelation, CrossingType, JunctionCandidate, JunctionOptions,
-    KernelError, LaneConnection, LaneConnectivityMode, LaneDirection, Movement,
-    PiecewiseLinearWidthProfile, Point2, Road, RoadId, RoadNetwork, StationRange, TolerancePolicy,
-    WidthKnot,
+    Alignment, AlignmentPrimitive, AlignmentSegment, AuthoredJunctionSnapshot, ComponentId,
+    ComponentKind, CrossSection, CrossSectionComponent, CrossingRelation, CrossingType,
+    JunctionCandidate, JunctionOptions, KernelError, LaneConnection, LaneConnectivityMode,
+    LaneDirection, Movement, PiecewiseLinearWidthProfile, Point2, Road, RoadId, RoadNetwork,
+    StationRange, TolerancePolicy, WidthKnot,
 };
 use street_concept_designer_project_core::{
     CoordinateContext, Project, ProjectError, ProjectId, Scenario, ScenarioId, ScenarioRole,
@@ -21,7 +21,7 @@ use street_concept_designer_project_core::{
 };
 
 pub mod schema {
-    //! Schema-v1 persistence DTOs.
+    //! Versioned persistence DTOs for schema v1 and schema v2.
     //!
     //! Field names use one explicit external camelCase policy. These types are
     //! intentionally separate from the runtime/domain model.
@@ -260,12 +260,84 @@ pub mod schema {
         pub coordinate_context: CoordinateContextDocumentV1,
         pub scenarios: Vec<ScenarioDocumentV1>,
     }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(tag = "kind", deny_unknown_fields, rename_all = "camelCase")]
+    pub enum AlignmentPrimitiveDocumentV2 {
+        Line {
+            start: PointDocumentV1,
+            end: PointDocumentV1,
+        },
+        CircularArc {
+            center: PointDocumentV1,
+            radius_m: f64,
+            start_angle_rad: f64,
+            sweep_angle_rad: f64,
+        },
+        SmoothConceptualCurve {
+            p0: PointDocumentV1,
+            p1: PointDocumentV1,
+            p2: PointDocumentV1,
+            p3: PointDocumentV1,
+        },
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(deny_unknown_fields, rename_all = "camelCase")]
+    pub struct AlignmentSegmentDocumentV2 {
+        pub segment_id: String,
+        pub primitive: AlignmentPrimitiveDocumentV2,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(deny_unknown_fields, rename_all = "camelCase")]
+    pub struct AlignmentDocumentV2 {
+        pub segments: Vec<AlignmentSegmentDocumentV2>,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(deny_unknown_fields, rename_all = "camelCase")]
+    pub struct RoadDocumentV2 {
+        pub road_id: String,
+        pub alignment: AlignmentDocumentV2,
+        pub cross_section: CrossSectionDocumentV1,
+        pub lane_directions: Vec<LaneDirectionDocumentV1>,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(deny_unknown_fields, rename_all = "camelCase")]
+    pub struct NetworkDocumentV2 {
+        pub roads: Vec<RoadDocumentV2>,
+        pub junction_definitions: Vec<JunctionDocumentV1>,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(deny_unknown_fields, rename_all = "camelCase")]
+    pub struct ScenarioDocumentV2 {
+        pub scenario_id: String,
+        pub name: String,
+        pub role: ScenarioRoleDocumentV1,
+        pub locked: bool,
+        pub network: NetworkDocumentV2,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[serde(deny_unknown_fields, rename_all = "camelCase")]
+    pub struct ProjectDocumentV2 {
+        pub schema_version: u32,
+        pub project_id: String,
+        pub name: String,
+        pub canonical_units: CanonicalUnitsDocumentV1,
+        pub traffic_side: TrafficSideDocumentV1,
+        pub coordinate_context: CoordinateContextDocumentV1,
+        pub scenarios: Vec<ScenarioDocumentV2>,
+    }
 }
 
-pub use schema::ProjectDocumentV1;
+pub use schema::{ProjectDocumentV1, ProjectDocumentV2};
 
 /// The only canonical document version emitted by this crate.
-pub const CURRENT_SCHEMA_VERSION: u32 = 1;
+pub const CURRENT_SCHEMA_VERSION: u32 = 2;
 
 /// Persistence failures are categorized so callers can translate them without
 /// depending on serde_json's private error wording.
@@ -368,14 +440,14 @@ pub fn encode_project_to_bytes(project: &Project) -> Result<Vec<u8>, Persistence
     })
 }
 
-/// Decode schema v1 or the explicitly supported synthetic pre-release v0
-/// fixture into a validated canonical Project.
+/// Decode the current schema, schema v1, or the explicitly supported historical
+/// pre-release v0 fixture into a validated canonical Project.
 pub fn decode_project_from_json(json: &str) -> Result<Project, PersistenceError> {
     decode_project_from_bytes(json.as_bytes())
 }
 
-/// Decode schema v1 or the explicitly supported synthetic pre-release v0
-/// fixture from UTF-8 JSON bytes.
+/// Decode the current schema, schema v1, or the explicitly supported historical
+/// pre-release v0 fixture from UTF-8 JSON bytes.
 pub fn decode_project_from_bytes(bytes: &[u8]) -> Result<Project, PersistenceError> {
     let document = decode_document(bytes)?;
     project_from_document(document)
@@ -417,7 +489,7 @@ struct SchemaVersionProbe {
     schema_version: Option<Value>,
 }
 
-fn decode_document(bytes: &[u8]) -> Result<ProjectDocumentV1, PersistenceError> {
+fn decode_document(bytes: &[u8]) -> Result<ProjectDocumentV2, PersistenceError> {
     let probe: SchemaVersionProbe = serde_json::from_slice(bytes).map_err(json_decode_error)?;
     let version_value = probe
         .schema_version
@@ -431,6 +503,11 @@ fn decode_document(bytes: &[u8]) -> Result<ProjectDocumentV1, PersistenceError> 
 
     match version {
         CURRENT_SCHEMA_VERSION => serde_json::from_slice(bytes).map_err(json_decode_error),
+        1 => {
+            let historical: ProjectDocumentV1 =
+                serde_json::from_slice(bytes).map_err(json_decode_error)?;
+            migrate_v1(historical)
+        }
         0 => {
             let historical: ProjectDocumentV0 =
                 serde_json::from_slice(bytes).map_err(json_decode_error)?;
@@ -469,9 +546,57 @@ struct ProjectDocumentV0 {
     scenarios: Vec<schema::ScenarioDocumentV1>,
 }
 
-fn migrate_v0(historical: ProjectDocumentV0) -> Result<ProjectDocumentV1, PersistenceError> {
-    // Synthetic pre-release R2 v0 fixture: the only supported difference is
-    // the equivalent spelling "metres" for the v1 canonical "m" value.
+fn migrate_v1(historical: ProjectDocumentV1) -> Result<ProjectDocumentV2, PersistenceError> {
+    if historical.schema_version != 1 {
+        return Err(PersistenceError::Migration {
+            message: format!(
+                "schema v1 fixture has schemaVersion {}, expected 1",
+                historical.schema_version
+            ),
+        });
+    }
+    Ok(ProjectDocumentV2 {
+        schema_version: CURRENT_SCHEMA_VERSION,
+        project_id: historical.project_id,
+        name: historical.name,
+        canonical_units: historical.canonical_units,
+        traffic_side: historical.traffic_side,
+        coordinate_context: historical.coordinate_context,
+        scenarios: historical
+            .scenarios
+            .into_iter()
+            .map(|scenario| schema::ScenarioDocumentV2 {
+                scenario_id: scenario.scenario_id,
+                name: scenario.name,
+                role: scenario.role,
+                locked: scenario.locked,
+                network: schema::NetworkDocumentV2 {
+                    roads: scenario
+                        .network
+                        .roads
+                        .into_iter()
+                        .map(|road| schema::RoadDocumentV2 {
+                            road_id: road.road_id,
+                            alignment: schema::AlignmentDocumentV2 {
+                                segments: vec![schema::AlignmentSegmentDocumentV2 {
+                                    segment_id: "segment-0".to_owned(),
+                                    primitive: alignment_primitive_v1_to_v2(road.alignment),
+                                }],
+                            },
+                            cross_section: road.cross_section,
+                            lane_directions: road.lane_directions,
+                        })
+                        .collect(),
+                    junction_definitions: scenario.network.junction_definitions,
+                },
+            })
+            .collect(),
+    })
+}
+
+fn migrate_v0(historical: ProjectDocumentV0) -> Result<ProjectDocumentV2, PersistenceError> {
+    // Historical v0 differs from the accepted v1 document only in the
+    // equivalent spelling "metres" for the v1 canonical "m" value.
     if historical.schema_version != 0 {
         return Err(PersistenceError::Migration {
             message: format!(
@@ -482,11 +607,11 @@ fn migrate_v0(historical: ProjectDocumentV0) -> Result<ProjectDocumentV1, Persis
     }
     if historical.canonical_units != "metres" {
         return Err(PersistenceError::Migration {
-            message: "synthetic v0 canonicalUnits must be \"metres\"".to_owned(),
+            message: "historical v0 canonicalUnits must be \"metres\"".to_owned(),
         });
     }
-    Ok(ProjectDocumentV1 {
-        schema_version: CURRENT_SCHEMA_VERSION,
+    migrate_v1(ProjectDocumentV1 {
+        schema_version: 1,
         project_id: historical.project_id,
         name: historical.name,
         canonical_units: schema::CanonicalUnitsDocumentV1::Metres,
@@ -496,12 +621,36 @@ fn migrate_v0(historical: ProjectDocumentV0) -> Result<ProjectDocumentV1, Persis
     })
 }
 
-fn project_to_document(project: &Project) -> Result<ProjectDocumentV1, PersistenceError> {
+fn alignment_primitive_v1_to_v2(
+    alignment: schema::AlignmentDocumentV1,
+) -> schema::AlignmentPrimitiveDocumentV2 {
+    match alignment {
+        schema::AlignmentDocumentV1::Line { start, end } => {
+            schema::AlignmentPrimitiveDocumentV2::Line { start, end }
+        }
+        schema::AlignmentDocumentV1::CircularArc {
+            center,
+            radius_m,
+            start_angle_rad,
+            sweep_angle_rad,
+        } => schema::AlignmentPrimitiveDocumentV2::CircularArc {
+            center,
+            radius_m,
+            start_angle_rad,
+            sweep_angle_rad,
+        },
+        schema::AlignmentDocumentV1::SmoothConceptualCurve { p0, p1, p2, p3 } => {
+            schema::AlignmentPrimitiveDocumentV2::SmoothConceptualCurve { p0, p1, p2, p3 }
+        }
+    }
+}
+
+fn project_to_document(project: &Project) -> Result<ProjectDocumentV2, PersistenceError> {
     validate_project_finite(project)?;
     project
         .validate_default()
         .map_err(PersistenceError::Project)?;
-    Ok(ProjectDocumentV1 {
+    Ok(ProjectDocumentV2 {
         schema_version: CURRENT_SCHEMA_VERSION,
         project_id: project.id().as_str().to_owned(),
         name: project.name().to_owned(),
@@ -518,8 +667,8 @@ fn project_to_document(project: &Project) -> Result<ProjectDocumentV1, Persisten
 
 fn scenario_to_document(
     scenario: &Scenario,
-) -> Result<schema::ScenarioDocumentV1, PersistenceError> {
-    Ok(schema::ScenarioDocumentV1 {
+) -> Result<schema::ScenarioDocumentV2, PersistenceError> {
+    Ok(schema::ScenarioDocumentV2 {
         scenario_id: scenario.id().as_str().to_owned(),
         name: scenario.name().to_owned(),
         role: scenario_role_to_document(scenario.role()),
@@ -530,8 +679,8 @@ fn scenario_to_document(
 
 fn network_to_document(
     network: &RoadNetwork,
-) -> Result<schema::NetworkDocumentV1, PersistenceError> {
-    Ok(schema::NetworkDocumentV1 {
+) -> Result<schema::NetworkDocumentV2, PersistenceError> {
+    Ok(schema::NetworkDocumentV2 {
         roads: network
             .roads()
             .iter()
@@ -545,7 +694,7 @@ fn network_to_document(
     })
 }
 
-fn road_to_document(road: &Road) -> Result<schema::RoadDocumentV1, PersistenceError> {
+fn road_to_document(road: &Road) -> Result<schema::RoadDocumentV2, PersistenceError> {
     let lane_directions = road
         .traffic_lane_ids()
         .into_iter()
@@ -565,7 +714,7 @@ fn road_to_document(road: &Road) -> Result<schema::RoadDocumentV1, PersistenceEr
             })
         })
         .collect::<Result<Vec<_>, PersistenceError>>()?;
-    Ok(schema::RoadDocumentV1 {
+    Ok(schema::RoadDocumentV2 {
         road_id: road.id().as_str().to_owned(),
         alignment: alignment_to_document(road.alignment()),
         cross_section: cross_section_to_document(road.cross_section()),
@@ -573,21 +722,36 @@ fn road_to_document(road: &Road) -> Result<schema::RoadDocumentV1, PersistenceEr
     })
 }
 
-fn alignment_to_document(alignment: &Alignment) -> schema::AlignmentDocumentV1 {
-    match alignment {
-        Alignment::Line(line) => schema::AlignmentDocumentV1::Line {
+fn alignment_to_document(alignment: &Alignment) -> schema::AlignmentDocumentV2 {
+    schema::AlignmentDocumentV2 {
+        segments: alignment
+            .segments()
+            .into_iter()
+            .map(|segment| schema::AlignmentSegmentDocumentV2 {
+                segment_id: segment.id().as_str().to_owned(),
+                primitive: alignment_primitive_to_document(segment.primitive()),
+            })
+            .collect(),
+    }
+}
+
+fn alignment_primitive_to_document(
+    primitive: &AlignmentPrimitive,
+) -> schema::AlignmentPrimitiveDocumentV2 {
+    match primitive {
+        AlignmentPrimitive::Line(line) => schema::AlignmentPrimitiveDocumentV2::Line {
             start: point_to_document(line.start()),
             end: point_to_document(line.end()),
         },
-        Alignment::CircularArc(arc) => schema::AlignmentDocumentV1::CircularArc {
+        AlignmentPrimitive::CircularArc(arc) => schema::AlignmentPrimitiveDocumentV2::CircularArc {
             center: point_to_document(arc.center()),
             radius_m: arc.radius(),
             start_angle_rad: arc.start_angle(),
             sweep_angle_rad: arc.sweep_angle(),
         },
-        Alignment::SmoothConceptualCurve(curve) => {
+        AlignmentPrimitive::SmoothConceptualCurve(curve) => {
             let [p0, p1, p2, p3] = curve.control_points();
-            schema::AlignmentDocumentV1::SmoothConceptualCurve {
+            schema::AlignmentPrimitiveDocumentV2::SmoothConceptualCurve {
                 p0: point_to_document(p0),
                 p1: point_to_document(p1),
                 p2: point_to_document(p2),
@@ -683,7 +847,7 @@ fn lane_connection_to_document(
     })
 }
 
-fn project_from_document(document: ProjectDocumentV1) -> Result<Project, PersistenceError> {
+fn project_from_document(document: ProjectDocumentV2) -> Result<Project, PersistenceError> {
     if document.schema_version != CURRENT_SCHEMA_VERSION {
         return Err(PersistenceError::MalformedPersistenceDto {
             message: format!(
@@ -711,7 +875,7 @@ fn project_from_document(document: ProjectDocumentV1) -> Result<Project, Persist
 }
 
 fn scenario_from_document(
-    document: schema::ScenarioDocumentV1,
+    document: schema::ScenarioDocumentV2,
 ) -> Result<Scenario, PersistenceError> {
     let scenario_id = ScenarioId::new(document.scenario_id).map_err(PersistenceError::Project)?;
     let network = network_from_document(document.network)?;
@@ -726,7 +890,7 @@ fn scenario_from_document(
 }
 
 fn network_from_document(
-    document: schema::NetworkDocumentV1,
+    document: schema::NetworkDocumentV2,
 ) -> Result<RoadNetwork, PersistenceError> {
     let policy = TolerancePolicy::default();
     let mut network = RoadNetwork::new();
@@ -747,7 +911,7 @@ fn network_from_document(
 }
 
 fn road_from_document(
-    document: schema::RoadDocumentV1,
+    document: schema::RoadDocumentV2,
     policy: &TolerancePolicy,
 ) -> Result<Road, PersistenceError> {
     let alignment = alignment_from_document(document.alignment, policy)?;
@@ -797,22 +961,43 @@ fn road_from_document(
 }
 
 fn alignment_from_document(
-    document: schema::AlignmentDocumentV1,
+    document: schema::AlignmentDocumentV2,
     policy: &TolerancePolicy,
 ) -> Result<Alignment, PersistenceError> {
+    if document.segments.is_empty() {
+        return Err(PersistenceError::MalformedPersistenceDto {
+            message: "alignment must contain at least one segment".to_owned(),
+        });
+    }
+    let segments = document
+        .segments
+        .into_iter()
+        .map(|segment| {
+            let primitive = alignment_primitive_from_document(segment.primitive, policy)?;
+            AlignmentSegment::new(segment.segment_id, primitive, policy)
+                .map_err(PersistenceError::Kernel)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Alignment::from_segments(segments, policy).map_err(PersistenceError::Kernel)
+}
+
+fn alignment_primitive_from_document(
+    document: schema::AlignmentPrimitiveDocumentV2,
+    policy: &TolerancePolicy,
+) -> Result<AlignmentPrimitive, PersistenceError> {
     match document {
-        schema::AlignmentDocumentV1::Line { start, end } => Alignment::line(
+        schema::AlignmentPrimitiveDocumentV2::Line { start, end } => AlignmentPrimitive::line(
             point_from_document(start, "alignment line start")?,
             point_from_document(end, "alignment line end")?,
             policy,
         )
         .map_err(PersistenceError::Kernel),
-        schema::AlignmentDocumentV1::CircularArc {
+        schema::AlignmentPrimitiveDocumentV2::CircularArc {
             center,
             radius_m,
             start_angle_rad,
             sweep_angle_rad,
-        } => Alignment::circular_arc(
+        } => AlignmentPrimitive::circular_arc(
             point_from_document(center, "alignment arc center")?,
             finite_value(radius_m, "alignment arc radius")?,
             finite_value(start_angle_rad, "alignment arc start angle")?,
@@ -820,8 +1005,8 @@ fn alignment_from_document(
             policy,
         )
         .map_err(PersistenceError::Kernel),
-        schema::AlignmentDocumentV1::SmoothConceptualCurve { p0, p1, p2, p3 } => {
-            Alignment::smooth_conceptual_curve(
+        schema::AlignmentPrimitiveDocumentV2::SmoothConceptualCurve { p0, p1, p2, p3 } => {
+            AlignmentPrimitive::smooth_conceptual_curve(
                 point_from_document(p0, "smooth curve p0")?,
                 point_from_document(p1, "smooth curve p1")?,
                 point_from_document(p2, "smooth curve p2")?,
@@ -1085,7 +1270,7 @@ fn validate_project_finite(project: &Project) -> Result<(), PersistenceError> {
     Ok(())
 }
 
-fn validate_document_finite(document: &ProjectDocumentV1) -> Result<(), PersistenceError> {
+fn validate_document_finite(document: &ProjectDocumentV2) -> Result<(), PersistenceError> {
     for scenario in &document.scenarios {
         for road in &scenario.network.roads {
             validate_alignment_document_finite(&road.alignment)?;
@@ -1121,18 +1306,25 @@ fn validate_document_finite(document: &ProjectDocumentV1) -> Result<(), Persiste
 }
 
 fn validate_alignment_finite(alignment: &Alignment) -> Result<(), PersistenceError> {
-    match alignment {
-        Alignment::Line(line) => {
+    for segment in alignment.segments() {
+        validate_primitive_finite(segment.primitive())?;
+    }
+    Ok(())
+}
+
+fn validate_primitive_finite(primitive: &AlignmentPrimitive) -> Result<(), PersistenceError> {
+    match primitive {
+        AlignmentPrimitive::Line(line) => {
             validate_point_finite(line.start(), "line start")?;
             validate_point_finite(line.end(), "line end")?;
         }
-        Alignment::CircularArc(arc) => {
+        AlignmentPrimitive::CircularArc(arc) => {
             validate_point_finite(arc.center(), "arc center")?;
             finite_value(arc.radius(), "arc radius")?;
             finite_value(arc.start_angle(), "arc start angle")?;
             finite_value(arc.sweep_angle(), "arc sweep angle")?;
         }
-        Alignment::SmoothConceptualCurve(curve) => {
+        AlignmentPrimitive::SmoothConceptualCurve(curve) => {
             for (index, point) in curve.control_points().into_iter().enumerate() {
                 validate_point_finite(point, &format!("smooth curve p{index}"))?;
             }
@@ -1148,14 +1340,28 @@ fn validate_point_finite(point: Point2, field: &str) -> Result<(), PersistenceEr
 }
 
 fn validate_alignment_document_finite(
-    alignment: &schema::AlignmentDocumentV1,
+    alignment: &schema::AlignmentDocumentV2,
+) -> Result<(), PersistenceError> {
+    if alignment.segments.is_empty() {
+        return Err(PersistenceError::MalformedPersistenceDto {
+            message: "alignment must contain at least one segment".to_owned(),
+        });
+    }
+    for segment in &alignment.segments {
+        validate_alignment_primitive_document_finite(&segment.primitive)?;
+    }
+    Ok(())
+}
+
+fn validate_alignment_primitive_document_finite(
+    alignment: &schema::AlignmentPrimitiveDocumentV2,
 ) -> Result<(), PersistenceError> {
     match alignment {
-        schema::AlignmentDocumentV1::Line { start, end } => {
+        schema::AlignmentPrimitiveDocumentV2::Line { start, end } => {
             validate_point_document_finite(start, "line start")?;
             validate_point_document_finite(end, "line end")?;
         }
-        schema::AlignmentDocumentV1::CircularArc {
+        schema::AlignmentPrimitiveDocumentV2::CircularArc {
             center,
             radius_m,
             start_angle_rad,
@@ -1166,7 +1372,7 @@ fn validate_alignment_document_finite(
             finite_value(*start_angle_rad, "arc start angle")?;
             finite_value(*sweep_angle_rad, "arc sweep angle")?;
         }
-        schema::AlignmentDocumentV1::SmoothConceptualCurve { p0, p1, p2, p3 } => {
+        schema::AlignmentPrimitiveDocumentV2::SmoothConceptualCurve { p0, p1, p2, p3 } => {
             validate_point_document_finite(p0, "smooth curve p0")?;
             validate_point_document_finite(p1, "smooth curve p1")?;
             validate_point_document_finite(p2, "smooth curve p2")?;

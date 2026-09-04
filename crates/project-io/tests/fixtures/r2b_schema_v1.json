@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "projectId": "fixture-r2b-v1",
+  "name": "R2B schema v1 fixture",
+  "canonicalUnits": "m",
+  "trafficSide": "LHT",
+  "coordinateContext": {
+    "referenceId": "EPSG:32647",
+    "description": "immutable accepted R2B schema v1 fixture"
+  },
+  "scenarios": [
+    {
+      "scenarioId": "scenario-existing",
+      "name": "Existing",
+      "role": "existing",
+      "locked": true,
+      "network": {
+        "roads": [
+          {
+            "roadId": "R01",
+            "alignment": {
+              "kind": "line",
+              "start": {
+                "x": 1000000000.125,
+                "y": -2000000000.75
+              },
+              "end": {
+                "x": 1000000300.125,
+                "y": -2000000000.75
+              }
+            },
+            "crossSection": {
+              "stationRange": {
+                "startM": 0.0,
+                "endM": 300.0
+              },
+              "components": [
+                {
+                  "componentId": "lane-main",
+                  "kind": "trafficLane",
+                  "widthProfile": {
+                    "stationRange": {
+                      "startM": 0.0,
+                      "endM": 300.0
+                    },
+                    "knots": [
+                      {
+                        "stationM": 0.0,
+                        "widthM": 3.5
+                      },
+                      {
+                        "stationM": 300.0,
+                        "widthM": 3.5
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "laneDirections": [
+              {
+                "laneId": "lane-main",
+                "direction": "withAlignment"
+              }
+            ]
+          }
+        ],
+        "junctionDefinitions": []
+      }
+    }
+  ]
+}

@@ -14,3 +14,7 @@ street-concept-designer-project-io = { path = "../project-io" }
 [[bench]]
 name = "r2c_command_history"
 harness = false
+
+[[bench]]
+name = "r3a_composite_alignment"
+harness = false

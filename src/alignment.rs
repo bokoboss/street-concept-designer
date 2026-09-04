@@ -128,6 +128,48 @@ pub enum AlignmentKind {
     CircularArc,
     /// Cubic Bezier conceptual curve with a deterministic arc-length lookup table.
     SmoothConceptualCurve,
+    /// An authored ordered sequence of alignment primitives.
+    Composite,
+}
+
+/// Stable identity for one authored segment within a road alignment.
+///
+/// Segment ids are scoped by their owning road/scenario.  They are semantic
+/// ids, not renderer handles or coordinate-derived values.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct AlignmentSegmentId(String);
+
+impl AlignmentSegmentId {
+    /// Construct a non-empty, whitespace-free segment identity.
+    pub fn new(value: impl Into<String>) -> Result<Self, KernelError> {
+        let value = value.into();
+        if value.is_empty() || value.chars().any(char::is_whitespace) {
+            return Err(KernelError::InvalidAlignmentSegmentId);
+        }
+        Ok(Self(value))
+    }
+
+    /// Borrow the stable id text.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl AsRef<str> for AlignmentSegmentId {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+/// One accepted primitive family used by an authored alignment segment.
+#[derive(Debug, Clone, PartialEq)]
+pub enum AlignmentPrimitive {
+    /// Straight reference segment.
+    Line(LineAlignment),
+    /// Directed circular-arc reference segment.
+    CircularArc(CircularArcAlignment),
+    /// Smooth conceptual cubic reference segment.
+    SmoothConceptualCurve(SmoothConceptualCurve),
 }
 
 /// A straight reference alignment.
@@ -789,24 +831,13 @@ impl SmoothConceptualCurve {
     }
 }
 
-/// A tagged alignment primitive used by semantic roads.
-#[derive(Debug, Clone, PartialEq)]
-pub enum Alignment {
-    /// Straight segment.
-    Line(LineAlignment),
-    /// Directed circular arc.
-    CircularArc(CircularArcAlignment),
-    /// Smooth cubic conceptual curve.
-    SmoothConceptualCurve(SmoothConceptualCurve),
-}
-
-impl Alignment {
-    /// Construct a line alignment.
+impl AlignmentPrimitive {
+    /// Construct a line primitive.
     pub fn line(start: Point2, end: Point2, policy: &TolerancePolicy) -> Result<Self, KernelError> {
         Ok(Self::Line(LineAlignment::new(start, end, policy)?))
     }
 
-    /// Construct a circular arc alignment.
+    /// Construct a circular-arc primitive.
     pub fn circular_arc(
         center: Point2,
         radius_m: f64,
@@ -823,7 +854,7 @@ impl Alignment {
         )?))
     }
 
-    /// Construct a smooth cubic conceptual curve alignment.
+    /// Construct a smooth conceptual cubic primitive.
     pub fn smooth_curve(
         p0: Point2,
         p1: Point2,
@@ -847,7 +878,7 @@ impl Alignment {
         Self::smooth_curve(p0, p1, p2, p3, policy)
     }
 
-    /// Primitive kind.
+    /// Primitive family.
     pub fn kind(&self) -> AlignmentKind {
         match self {
             Self::Line(_) => AlignmentKind::Line,
@@ -856,7 +887,7 @@ impl Alignment {
         }
     }
 
-    /// Total alignment length in metres.
+    /// Primitive length in metres.
     pub fn length(&self) -> f64 {
         match self {
             Self::Line(alignment) => alignment.length(),
@@ -865,7 +896,7 @@ impl Alignment {
         }
     }
 
-    /// Inclusive station domain beginning at zero.
+    /// Primitive-local station range beginning at zero.
     pub fn station_range(&self) -> StationRange {
         match self {
             Self::Line(alignment) => alignment.station_range(),
@@ -874,7 +905,7 @@ impl Alignment {
         }
     }
 
-    /// Point at bounded station `s` in metres.
+    /// Point at primitive-local station `s` in metres.
     pub fn point_at(
         &self,
         station_m: f64,
@@ -887,7 +918,7 @@ impl Alignment {
         }
     }
 
-    /// Unit tangent at bounded station `s`.
+    /// Unit tangent at primitive-local station `s`.
     pub fn tangent_at(
         &self,
         station_m: f64,
@@ -900,7 +931,7 @@ impl Alignment {
         }
     }
 
-    /// Unit left-hand normal at bounded station `s`.
+    /// Unit left-hand normal at primitive-local station `s`.
     pub fn normal_at(
         &self,
         station_m: f64,
@@ -913,7 +944,7 @@ impl Alignment {
         }
     }
 
-    /// Project a finite XY query to the bounded alignment.
+    /// Project a finite query to primitive-local station space.
     pub fn project(
         &self,
         query: Point2,
@@ -947,11 +978,576 @@ impl Alignment {
         }
     }
 
-    /// Adaptively sample the alignment with a deterministic point budget.
+    fn validate(&self, policy: &TolerancePolicy) -> Result<(), KernelError> {
+        policy.validate()?;
+        let range = self.station_range();
+        if range.start_m != 0.0
+            || !self.length().is_finite()
+            || self.length() <= policy.minimum_alignment_length_m
+        {
+            return Err(KernelError::InvalidLength {
+                operation: "alignment segment",
+            });
+        }
+        self.point_at(range.start_m, policy)?;
+        self.point_at(range.end_m, policy)?;
+        self.tangent_at(range.start_m, policy)?;
+        self.tangent_at(range.end_m, policy)?;
+        Ok(())
+    }
+}
+
+/// One stable-id-bearing segment in a production alignment.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AlignmentSegment {
+    id: AlignmentSegmentId,
+    primitive: AlignmentPrimitive,
+}
+
+impl AlignmentSegment {
+    /// Construct a segment from a validated primitive.
+    pub fn new(
+        id: impl Into<String>,
+        primitive: AlignmentPrimitive,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        policy.validate()?;
+        let id = AlignmentSegmentId::new(id)?;
+        primitive.validate(policy)?;
+        Ok(Self { id, primitive })
+    }
+
+    /// Construct a line segment with a stable id.
+    pub fn line(
+        id: impl Into<String>,
+        start: Point2,
+        end: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        Self::new(id, AlignmentPrimitive::line(start, end, policy)?, policy)
+    }
+
+    /// Construct a circular-arc segment with a stable id.
+    pub fn circular_arc(
+        id: impl Into<String>,
+        center: Point2,
+        radius_m: f64,
+        start_angle_rad: f64,
+        sweep_angle_rad: f64,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        Self::new(
+            id,
+            AlignmentPrimitive::circular_arc(
+                center,
+                radius_m,
+                start_angle_rad,
+                sweep_angle_rad,
+                policy,
+            )?,
+            policy,
+        )
+    }
+
+    /// Construct a smooth conceptual curve segment with a stable id.
+    pub fn smooth_curve(
+        id: impl Into<String>,
+        p0: Point2,
+        p1: Point2,
+        p2: Point2,
+        p3: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        Self::new(
+            id,
+            AlignmentPrimitive::smooth_curve(p0, p1, p2, p3, policy)?,
+            policy,
+        )
+    }
+
+    /// Alias emphasizing that the cubic is a concept-design curve.
+    pub fn smooth_conceptual_curve(
+        id: impl Into<String>,
+        p0: Point2,
+        p1: Point2,
+        p2: Point2,
+        p3: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        Self::smooth_curve(id, p0, p1, p2, p3, policy)
+    }
+
+    /// Stable semantic segment id.
+    pub fn id(&self) -> &AlignmentSegmentId {
+        &self.id
+    }
+
+    /// Segment primitive.
+    pub fn primitive(&self) -> &AlignmentPrimitive {
+        &self.primitive
+    }
+
+    /// Segment primitive family.
+    pub fn kind(&self) -> AlignmentKind {
+        self.primitive.kind()
+    }
+
+    /// Segment length in metres.
+    pub fn length(&self) -> f64 {
+        self.primitive.length()
+    }
+
+    /// Segment-local station range beginning at zero.
+    pub fn station_range(&self) -> StationRange {
+        self.primitive.station_range()
+    }
+
+    /// Segment start point.
+    pub fn start_point(&self, policy: &TolerancePolicy) -> Result<Point2, KernelError> {
+        self.primitive.point_at(0.0, policy)
+    }
+
+    /// Segment end point.
+    pub fn end_point(&self, policy: &TolerancePolicy) -> Result<Point2, KernelError> {
+        self.primitive.point_at(self.length(), policy)
+    }
+
+    /// Segment start tangent.
+    pub fn start_tangent(&self, policy: &TolerancePolicy) -> Result<Vector2, KernelError> {
+        self.primitive.tangent_at(0.0, policy)
+    }
+
+    /// Segment end tangent.
+    pub fn end_tangent(&self, policy: &TolerancePolicy) -> Result<Vector2, KernelError> {
+        self.primitive.tangent_at(self.length(), policy)
+    }
+}
+
+const LEGACY_SEGMENT_ID: &str = "segment-0";
+
+/// Validated cumulative station data for one authored composite alignment.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CompositeAlignment {
+    segments: Vec<AlignmentSegment>,
+    segment_ranges: Vec<StationRange>,
+    station_range: StationRange,
+}
+
+impl CompositeAlignment {
+    /// Construct and validate an ordered, tangent-continuous alignment.
+    pub fn new(
+        segments: Vec<AlignmentSegment>,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        policy.validate()?;
+        if segments.is_empty() {
+            return Err(KernelError::InvalidParameter {
+                field: "alignment.segments",
+            });
+        }
+
+        for (index, segment) in segments.iter().enumerate() {
+            if segments[..index]
+                .iter()
+                .any(|previous| previous.id() == segment.id())
+            {
+                return Err(KernelError::DuplicateAlignmentSegmentId);
+            }
+        }
+
+        for index in 1..segments.len() {
+            let previous = &segments[index - 1];
+            let current = &segments[index];
+            let previous_end = previous.end_point(policy)?;
+            let current_start = current.start_point(policy)?;
+            let gap_m = previous_end.distance_to(current_start);
+            if !gap_m.is_finite() {
+                return Err(KernelError::NonFiniteResult {
+                    operation: "alignment segment endpoint gap",
+                });
+            }
+            if gap_m > policy.coordinate_coincidence_m {
+                return Err(KernelError::AlignmentEndpointGap {
+                    segment_index: index,
+                    gap_m,
+                });
+            }
+
+            let previous_tangent = previous.end_tangent(policy)?;
+            let current_tangent = current.start_tangent(policy)?;
+            let angle_rad = previous_tangent
+                .cross(current_tangent)
+                .abs()
+                .atan2(previous_tangent.dot(current_tangent));
+            if !angle_rad.is_finite() {
+                return Err(KernelError::NonFiniteResult {
+                    operation: "alignment segment tangent continuity",
+                });
+            }
+            if angle_rad > policy.angular_rad {
+                return Err(KernelError::AlignmentTangentDiscontinuity {
+                    segment_index: index,
+                    angle_rad,
+                });
+            }
+        }
+
+        let mut segment_ranges = Vec::with_capacity(segments.len());
+        let mut cumulative_station_m = 0.0;
+        for segment in &segments {
+            let end_station_m = cumulative_station_m + segment.length();
+            if !end_station_m.is_finite() {
+                return Err(KernelError::NonFiniteResult {
+                    operation: "composite alignment station range",
+                });
+            }
+            if end_station_m <= cumulative_station_m {
+                return Err(KernelError::InvalidLength {
+                    operation: "composite alignment station order",
+                });
+            }
+            segment_ranges.push(StationRange::new(
+                cumulative_station_m,
+                end_station_m,
+                policy,
+            )?);
+            cumulative_station_m = end_station_m;
+        }
+        let station_range = StationRange::new(0.0, cumulative_station_m, policy)?;
+        Ok(Self {
+            segments,
+            segment_ranges,
+            station_range,
+        })
+    }
+
+    /// Authored segments in exact stable order.
+    pub fn segments(&self) -> &[AlignmentSegment] {
+        &self.segments
+    }
+
+    /// Exact cumulative station range for each segment.
+    pub fn segment_ranges(&self) -> &[StationRange] {
+        &self.segment_ranges
+    }
+
+    /// Whole-alignment station range.
+    pub fn station_range(&self) -> StationRange {
+        self.station_range
+    }
+
+    /// Total cumulative alignment length in metres.
+    pub fn length(&self) -> f64 {
+        self.station_range.end_m
+    }
+
+    fn locate_segment(&self, station_m: f64) -> (&AlignmentSegment, StationRange, f64) {
+        let index = self
+            .segment_ranges
+            .iter()
+            .position(|range| station_m < range.end_m)
+            .unwrap_or(self.segment_ranges.len() - 1);
+        let range = self.segment_ranges[index];
+        let local_station_m = if station_m <= range.start_m {
+            0.0
+        } else if station_m >= range.end_m {
+            self.segments[index].length()
+        } else {
+            station_m - range.start_m
+        };
+        (&self.segments[index], range, local_station_m)
+    }
+
+    fn point_at(&self, station_m: f64, policy: &TolerancePolicy) -> Result<Point2, KernelError> {
+        let station_m = clamp_station(station_m, self.station_range, policy)?;
+        let (segment, _, local_station_m) = self.locate_segment(station_m);
+        segment.primitive().point_at(local_station_m, policy)
+    }
+
+    fn tangent_at(&self, station_m: f64, policy: &TolerancePolicy) -> Result<Vector2, KernelError> {
+        let station_m = clamp_station(station_m, self.station_range, policy)?;
+        let (segment, _, local_station_m) = self.locate_segment(station_m);
+        segment.primitive().tangent_at(local_station_m, policy)
+    }
+
+    fn normal_at(&self, station_m: f64, policy: &TolerancePolicy) -> Result<Vector2, KernelError> {
+        let station_m = clamp_station(station_m, self.station_range, policy)?;
+        let (segment, _, local_station_m) = self.locate_segment(station_m);
+        segment.primitive().normal_at(local_station_m, policy)
+    }
+
+    fn project(&self, query: Point2, policy: &TolerancePolicy) -> Result<Projection, KernelError> {
+        policy.validate()?;
+        if !query.is_finite() {
+            return Err(KernelError::NonFiniteInput {
+                field: "alignment.query",
+            });
+        }
+        let mut best = None;
+        for (segment, range) in self.segments.iter().zip(&self.segment_ranges) {
+            let local = segment.primitive().project(query, policy)?;
+            let station_m = if local.station_m <= 0.0 {
+                range.start_m
+            } else if local.station_m >= segment.length() {
+                range.end_m
+            } else {
+                range.start_m + local.station_m
+            };
+            if !station_m.is_finite() {
+                return Err(KernelError::NonFiniteResult {
+                    operation: "composite alignment projection station",
+                });
+            }
+            let candidate = Projection { station_m, ..local };
+            best = Some(match best {
+                Some(current) => Projection::prefer(candidate, current),
+                None => candidate,
+            });
+        }
+        best.ok_or(KernelError::ProjectionUndefined)
+    }
+
+    fn sample_stations(
+        &self,
+        options: SamplingOptions,
+        policy: &TolerancePolicy,
+    ) -> Result<Vec<f64>, KernelError> {
+        if self
+            .segments
+            .len()
+            .checked_add(1)
+            .is_none_or(|count| count > options.max_points)
+        {
+            return Err(KernelError::SamplingLimitExceeded);
+        }
+        let mut stations = Vec::with_capacity(self.segments.len() + 1);
+        for (index, (segment, range)) in self.segments.iter().zip(&self.segment_ranges).enumerate()
+        {
+            if index == 0 {
+                stations.push(range.start_m);
+            } else if stations.last().copied() != Some(range.start_m) {
+                return Err(KernelError::NonFiniteResult {
+                    operation: "composite alignment boundary station",
+                });
+            }
+            let start = segment.primitive().point_at(0.0, policy)?;
+            let end = segment.primitive().point_at(segment.length(), policy)?;
+            let mut context = SampleContext {
+                alignment: segment.primitive(),
+                options,
+                policy,
+                stations: &mut stations,
+                station_offset: range.start_m,
+                local_end_station: segment.length(),
+                global_end_station: range.end_m,
+            };
+            context.subdivide(0.0, start, segment.length(), end, 0)?;
+            if let Some(last) = stations.last_mut() {
+                *last = range.end_m;
+            }
+        }
+        validate_sample_stations(&stations, self.station_range)?;
+        Ok(stations)
+    }
+}
+
+/// A production alignment with one cumulative station domain and stable,
+/// ordered segment identities.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Alignment {
+    composite: CompositeAlignment,
+}
+
+impl Alignment {
+    /// Construct a one-segment line alignment with the deterministic id
+    /// `segment-0`.
+    pub fn line(start: Point2, end: Point2, policy: &TolerancePolicy) -> Result<Self, KernelError> {
+        let primitive = AlignmentPrimitive::line(start, end, policy)?;
+        Self::from_segments(
+            vec![AlignmentSegment::new(LEGACY_SEGMENT_ID, primitive, policy)?],
+            policy,
+        )
+    }
+
+    /// Construct a one-segment circular-arc alignment with the deterministic
+    /// id `segment-0`.
+    pub fn circular_arc(
+        center: Point2,
+        radius_m: f64,
+        start_angle_rad: f64,
+        sweep_angle_rad: f64,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        let primitive = AlignmentPrimitive::circular_arc(
+            center,
+            radius_m,
+            start_angle_rad,
+            sweep_angle_rad,
+            policy,
+        )?;
+        Self::from_segments(
+            vec![AlignmentSegment::new(LEGACY_SEGMENT_ID, primitive, policy)?],
+            policy,
+        )
+    }
+
+    /// Construct a one-segment smooth conceptual curve with the deterministic
+    /// id `segment-0`.
+    pub fn smooth_curve(
+        p0: Point2,
+        p1: Point2,
+        p2: Point2,
+        p3: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        let primitive = AlignmentPrimitive::smooth_curve(p0, p1, p2, p3, policy)?;
+        Self::from_segments(
+            vec![AlignmentSegment::new(LEGACY_SEGMENT_ID, primitive, policy)?],
+            policy,
+        )
+    }
+
+    /// Alias emphasizing that the cubic is a concept-design curve.
+    pub fn smooth_conceptual_curve(
+        p0: Point2,
+        p1: Point2,
+        p2: Point2,
+        p3: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        Self::smooth_curve(p0, p1, p2, p3, policy)
+    }
+
+    /// Construct an authored ordered alignment from stable-id-bearing segments.
+    pub fn from_segments(
+        segments: Vec<AlignmentSegment>,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        Ok(Self {
+            composite: CompositeAlignment::new(segments, policy)?,
+        })
+    }
+
+    /// Alias for [`Self::from_segments`].
+    pub fn composite(
+        segments: Vec<AlignmentSegment>,
+        policy: &TolerancePolicy,
+    ) -> Result<Self, KernelError> {
+        Self::from_segments(segments, policy)
+    }
+
+    /// Whether this alignment contains multiple authored segments.
+    pub fn is_composite(&self) -> bool {
+        self.segment_count() > 1
+    }
+
+    /// Number of logical authored segments.
+    pub fn segment_count(&self) -> usize {
+        self.composite.segments.len()
+    }
+
+    /// Logical authored segments in stable order.
     ///
-    /// `max_chord_error_m` is enforced with a primitive-specific bound: zero for
-    /// lines, circular-arc sagitta for arcs, and a cubic convex-hull bound for
-    /// smooth conceptual curves.
+    /// The returned values are clones so callers cannot mutate the validated
+    /// alignment without rebuilding its cumulative index.
+    pub fn segments(&self) -> Vec<AlignmentSegment> {
+        self.composite.segments.clone()
+    }
+
+    /// Stable logical segment ids in authored order.
+    pub fn segment_ids(&self) -> Vec<AlignmentSegmentId> {
+        self.segments()
+            .into_iter()
+            .map(|segment| segment.id)
+            .collect()
+    }
+
+    /// Exact cumulative station ranges in authored segment order.
+    pub fn segment_ranges(&self) -> Vec<StationRange> {
+        self.composite.segment_ranges.clone()
+    }
+
+    /// Get one logical authored segment by zero-based order.
+    pub fn segment(&self, index: usize) -> Option<AlignmentSegment> {
+        self.segments().into_iter().nth(index)
+    }
+
+    /// Get one exact cumulative station range by zero-based segment order.
+    pub fn segment_range(&self, index: usize) -> Option<StationRange> {
+        self.segment_ranges().into_iter().nth(index)
+    }
+
+    /// Alignment start point.
+    pub fn start_point(&self, policy: &TolerancePolicy) -> Result<Point2, KernelError> {
+        self.point_at(self.station_range().start_m, policy)
+    }
+
+    /// Alignment end point.
+    pub fn end_point(&self, policy: &TolerancePolicy) -> Result<Point2, KernelError> {
+        self.point_at(self.station_range().end_m, policy)
+    }
+
+    /// Alignment kind, returning the primitive family for one segment and
+    /// `Composite` for an alignment with multiple segments.
+    pub fn kind(&self) -> AlignmentKind {
+        if self.segment_count() == 1 {
+            self.composite.segments[0].kind()
+        } else {
+            AlignmentKind::Composite
+        }
+    }
+
+    /// Total alignment length in metres.
+    pub fn length(&self) -> f64 {
+        self.composite.length()
+    }
+
+    /// Inclusive station domain beginning at zero.
+    pub fn station_range(&self) -> StationRange {
+        self.composite.station_range()
+    }
+
+    /// Point at bounded whole-alignment station `s` in metres.
+    pub fn point_at(
+        &self,
+        station_m: f64,
+        policy: &TolerancePolicy,
+    ) -> Result<Point2, KernelError> {
+        self.composite.point_at(station_m, policy)
+    }
+
+    /// Unit tangent at bounded whole-alignment station `s`.
+    pub fn tangent_at(
+        &self,
+        station_m: f64,
+        policy: &TolerancePolicy,
+    ) -> Result<Vector2, KernelError> {
+        self.composite.tangent_at(station_m, policy)
+    }
+
+    /// Unit left-hand normal at bounded whole-alignment station `s`.
+    pub fn normal_at(
+        &self,
+        station_m: f64,
+        policy: &TolerancePolicy,
+    ) -> Result<Vector2, KernelError> {
+        self.composite.normal_at(station_m, policy)
+    }
+
+    /// Project a finite XY query to the bounded whole-alignment station.
+    pub fn project(
+        &self,
+        query: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<Projection, KernelError> {
+        self.composite.project(query, policy)
+    }
+
+    /// Adaptively sample the whole alignment with a deterministic point budget.
+    ///
+    /// Every composite segment boundary is emitted exactly once.  The
+    /// following segment owns an interior boundary for point/tangent/normal
+    /// dispatch; no endpoint is averaged or moved.
     pub fn sample(
         &self,
         options: SamplingOptions,
@@ -959,17 +1555,7 @@ impl Alignment {
     ) -> Result<Vec<SamplePoint>, KernelError> {
         policy.validate()?;
         options.validate()?;
-        let length_m = self.length();
-        let start = self.point_at(0.0, policy)?;
-        let end = self.point_at(length_m, policy)?;
-        let mut stations = vec![0.0];
-        let mut context = SampleContext {
-            alignment: self,
-            options,
-            policy,
-            stations: &mut stations,
-        };
-        context.subdivide(0.0, start, length_m, end, 0)?;
+        let stations = self.composite.sample_stations(options, policy)?;
         stations
             .into_iter()
             .map(|station_m| {
@@ -1033,14 +1619,55 @@ fn point_segment_distance(
     }
 }
 
-struct SampleContext<'a> {
-    alignment: &'a Alignment,
+trait SampleAlignment {
+    fn sample_point_at(
+        &self,
+        station_m: f64,
+        policy: &TolerancePolicy,
+    ) -> Result<Point2, KernelError>;
+
+    fn sample_chord_error_bound(
+        &self,
+        start_station: f64,
+        start_point: Point2,
+        end_station: f64,
+        end_point: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<f64, KernelError>;
+}
+
+impl SampleAlignment for AlignmentPrimitive {
+    fn sample_point_at(
+        &self,
+        station_m: f64,
+        policy: &TolerancePolicy,
+    ) -> Result<Point2, KernelError> {
+        self.point_at(station_m, policy)
+    }
+
+    fn sample_chord_error_bound(
+        &self,
+        start_station: f64,
+        start_point: Point2,
+        end_station: f64,
+        end_point: Point2,
+        policy: &TolerancePolicy,
+    ) -> Result<f64, KernelError> {
+        self.chord_error_bound(start_station, start_point, end_station, end_point, policy)
+    }
+}
+
+struct SampleContext<'a, A: SampleAlignment + ?Sized> {
+    alignment: &'a A,
     options: SamplingOptions,
     policy: &'a TolerancePolicy,
     stations: &'a mut Vec<f64>,
+    station_offset: f64,
+    local_end_station: f64,
+    global_end_station: f64,
 }
 
-impl<'a> SampleContext<'a> {
+impl<'a, A: SampleAlignment + ?Sized> SampleContext<'a, A> {
     fn subdivide(
         &mut self,
         start_station: f64,
@@ -1050,14 +1677,16 @@ impl<'a> SampleContext<'a> {
         depth: u8,
     ) -> Result<(), KernelError> {
         let midpoint_station = start_station + (end_station - start_station) / 2.0;
-        let midpoint = self.alignment.point_at(midpoint_station, self.policy)?;
+        let midpoint = self
+            .alignment
+            .sample_point_at(midpoint_station, self.policy)?;
         let station_span = end_station - start_station;
         if !station_span.is_finite() {
             return Err(KernelError::NonFiniteResult {
                 operation: "sampling station span",
             });
         }
-        let chord_error = self.alignment.chord_error_bound(
+        let chord_error = self.alignment.sample_chord_error_bound(
             start_station,
             start_point,
             end_station,
@@ -1067,7 +1696,12 @@ impl<'a> SampleContext<'a> {
         let needs_split = station_span > self.options.max_segment_length_m
             || chord_error > self.options.max_chord_error_m;
         if needs_split {
-            if depth >= self.options.max_depth || self.stations.len() + 2 > self.options.max_points
+            if depth >= self.options.max_depth
+                || self
+                    .stations
+                    .len()
+                    .checked_add(2)
+                    .is_none_or(|count| count > self.options.max_points)
             {
                 return Err(KernelError::SamplingLimitExceeded);
             }
@@ -1089,10 +1723,40 @@ impl<'a> SampleContext<'a> {
                 depth + 1,
             )?;
         } else {
-            self.stations.push(end_station);
+            let global_station = if end_station == self.local_end_station {
+                self.global_end_station
+            } else {
+                self.station_offset + end_station
+            };
+            if !global_station.is_finite() {
+                return Err(KernelError::NonFiniteResult {
+                    operation: "sampling global station",
+                });
+            }
+            self.stations.push(global_station);
         }
         Ok(())
     }
+}
+
+fn validate_sample_stations(
+    stations: &[f64],
+    station_range: StationRange,
+) -> Result<(), KernelError> {
+    if stations.len() < 2
+        || stations.first().copied() != Some(station_range.start_m)
+        || stations.last().copied() != Some(station_range.end_m)
+    {
+        return Err(KernelError::SamplingLimitExceeded);
+    }
+    if stations.iter().any(|station_m| !station_m.is_finite())
+        || stations.windows(2).any(|pair| pair[1] <= pair[0])
+    {
+        return Err(KernelError::NonFiniteResult {
+            operation: "sampling station order",
+        });
+    }
+    Ok(())
 }
 
 fn cubic_point(control: CubicControl, t: f64) -> Point2 {

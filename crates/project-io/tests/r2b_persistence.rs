@@ -1,8 +1,8 @@
 mod support;
 
 use street_concept_designer_kernel::{
-    derive_diagnostic_2d, derive_diagnostic_3d, Alignment, DerivedEngineeringSnapshot,
-    JunctionStatus, Point2,
+    derive_diagnostic_2d, derive_diagnostic_3d, Alignment, AlignmentPrimitive,
+    DerivedEngineeringSnapshot, JunctionStatus, Point2,
 };
 use street_concept_designer_project_core::{Project, Scenario};
 use street_concept_designer_project_io::{
@@ -127,47 +127,12 @@ fn assert_authored_f64_bits_equal(before: &Project, after: &Project) {
             .iter()
             .zip(scenario_after.network().roads())
         {
-            match (road_before.alignment(), road_after.alignment()) {
-                (Alignment::Line(before), Alignment::Line(after)) => {
-                    assert_f64_bits_equal(before.start().x, after.start().x, "line start x");
-                    assert_f64_bits_equal(before.start().y, after.start().y, "line start y");
-                    assert_f64_bits_equal(before.end().x, after.end().x, "line end x");
-                    assert_f64_bits_equal(before.end().y, after.end().y, "line end y");
-                }
-                (Alignment::CircularArc(before), Alignment::CircularArc(after)) => {
-                    assert_f64_bits_equal(before.center().x, after.center().x, "arc center x");
-                    assert_f64_bits_equal(before.center().y, after.center().y, "arc center y");
-                    assert_f64_bits_equal(before.radius(), after.radius(), "arc radius");
-                    assert_f64_bits_equal(
-                        before.start_angle(),
-                        after.start_angle(),
-                        "arc start angle",
-                    );
-                    assert_f64_bits_equal(
-                        before.sweep_angle(),
-                        after.sweep_angle(),
-                        "arc sweep angle",
-                    );
-                }
-                (
-                    Alignment::SmoothConceptualCurve(before),
-                    Alignment::SmoothConceptualCurve(after),
-                ) => {
-                    for (index, (before, after)) in before
-                        .control_points()
-                        .into_iter()
-                        .zip(after.control_points())
-                        .enumerate()
-                    {
-                        assert_f64_bits_equal(before.x, after.x, &format!("smooth p{index} x"));
-                        assert_f64_bits_equal(before.y, after.y, &format!("smooth p{index} y"));
-                    }
-                }
-                (before, after) => panic!(
-                    "alignment kind changed: {:?} -> {:?}",
-                    before.kind(),
-                    after.kind()
-                ),
+            let before_segments = road_before.alignment().segments();
+            let after_segments = road_after.alignment().segments();
+            assert_eq!(before_segments.len(), after_segments.len());
+            for (before, after) in before_segments.iter().zip(&after_segments) {
+                assert_eq!(before.id(), after.id());
+                assert_primitive_f64_bits_equal(before.primitive(), after.primitive());
             }
             assert_f64_bits_equal(
                 road_before.station_range().start_m,
@@ -268,6 +233,43 @@ fn assert_authored_f64_bits_equal(before: &Project, after: &Project) {
     }
 }
 
+fn assert_primitive_f64_bits_equal(before: &AlignmentPrimitive, after: &AlignmentPrimitive) {
+    match (before, after) {
+        (AlignmentPrimitive::Line(before), AlignmentPrimitive::Line(after)) => {
+            assert_f64_bits_equal(before.start().x, after.start().x, "line start x");
+            assert_f64_bits_equal(before.start().y, after.start().y, "line start y");
+            assert_f64_bits_equal(before.end().x, after.end().x, "line end x");
+            assert_f64_bits_equal(before.end().y, after.end().y, "line end y");
+        }
+        (AlignmentPrimitive::CircularArc(before), AlignmentPrimitive::CircularArc(after)) => {
+            assert_f64_bits_equal(before.center().x, after.center().x, "arc center x");
+            assert_f64_bits_equal(before.center().y, after.center().y, "arc center y");
+            assert_f64_bits_equal(before.radius(), after.radius(), "arc radius");
+            assert_f64_bits_equal(before.start_angle(), after.start_angle(), "arc start angle");
+            assert_f64_bits_equal(before.sweep_angle(), after.sweep_angle(), "arc sweep angle");
+        }
+        (
+            AlignmentPrimitive::SmoothConceptualCurve(before),
+            AlignmentPrimitive::SmoothConceptualCurve(after),
+        ) => {
+            for (index, (before, after)) in before
+                .control_points()
+                .into_iter()
+                .zip(after.control_points())
+                .enumerate()
+            {
+                assert_f64_bits_equal(before.x, after.x, &format!("smooth p{index} x"));
+                assert_f64_bits_equal(before.y, after.y, &format!("smooth p{index} y"));
+            }
+        }
+        (before, after) => panic!(
+            "alignment primitive kind changed: {:?} -> {:?}",
+            before.kind(),
+            after.kind()
+        ),
+    }
+}
+
 fn assert_no_derived_schema_keys(value: &serde_json::Value) {
     const FORBIDDEN: &[&str] = &[
         "rendererCache",
@@ -307,7 +309,7 @@ fn representative_project_round_trips_with_authored_order_and_clean_r1c_rebuild(
     let project = representative_project();
     let json = encode_project_to_json(&project).expect("encode representative project");
     let value: serde_json::Value = serde_json::from_str(&json).expect("JSON");
-    assert_eq!(value["schemaVersion"], 1);
+    assert_eq!(value["schemaVersion"], 2);
     assert_eq!(value["canonicalUnits"], "m");
     assert_eq!(value["trafficSide"], "LHT");
     assert_eq!(
@@ -424,32 +426,42 @@ fn finite_engineering_f64_corpus_round_trips_bit_exactly() {
 }
 
 #[test]
-fn synthetic_pre_release_v0_migration_is_explicit_deterministic_and_lossless() {
-    let project = representative_project();
-    let current_json = encode_project_to_json(&project).expect("encode current");
-    let mut historical: serde_json::Value = serde_json::from_str(&current_json).expect("JSON");
-    historical["schemaVersion"] = serde_json::json!(0);
-    historical["canonicalUnits"] = serde_json::json!("metres");
-    let historical_json = serde_json::to_string(&historical).expect("synthetic v0 fixture");
+fn historical_pre_release_v0_fixture_migration_is_deterministic_and_lossless() {
+    const V0_FIXTURE: &str = include_str!("fixtures/r2b_schema_v0.json");
+    const V1_FIXTURE: &str = include_str!("fixtures/r2b_schema_v1.json");
 
-    let migrated = decode_project_from_json(&historical_json).expect("migrate v0");
-    let migrated_again = decode_project_from_json(&historical_json).expect("repeat v0 migration");
-    assert_eq!(migrated, project);
+    let historical: serde_json::Value = serde_json::from_str(V0_FIXTURE).expect("v0 JSON");
+    assert_eq!(historical["schemaVersion"], 0);
+    assert_eq!(historical["canonicalUnits"], "metres");
+    assert!(!V0_FIXTURE.contains("\"segments\""));
+
+    let migrated = decode_project_from_json(V0_FIXTURE).expect("migrate v0");
+    let migrated_again = decode_project_from_json(V0_FIXTURE).expect("repeat v0 migration");
+    let migrated_v1 = decode_project_from_json(V1_FIXTURE).expect("migrate v1");
+    assert_eq!(migrated, migrated_v1);
     assert_eq!(migrated, migrated_again);
     assert_eq!(
-        encode_project_to_json(&migrated).expect("encode migrated project"),
-        current_json,
-        "migration emits current schema v1 only"
+        migrated.scenarios()[0].network().roads()[0]
+            .alignment()
+            .segment_ids()[0]
+            .as_str(),
+        "segment-0"
+    );
+    let migrated_json = encode_project_to_json(&migrated).expect("encode migrated project");
+    let migrated_value: serde_json::Value = serde_json::from_str(&migrated_json).expect("JSON");
+    assert_eq!(
+        migrated_value["schemaVersion"], 2,
+        "migration emits current schema v2 only"
     );
 }
 
 #[test]
 fn raw_duplicate_schema_version_is_rejected_in_both_orders() {
     let json = representative_json();
-    let first_then_second = duplicate_raw_scalar_field(&json, "schemaVersion", "1", "2");
+    let first_then_second = duplicate_raw_scalar_field(&json, "schemaVersion", "2", "3");
     assert_raw_duplicate_rejected(&first_then_second, "schemaVersion");
 
-    let second_then_first = duplicate_raw_scalar_field(&json, "schemaVersion", "2", "1");
+    let second_then_first = duplicate_raw_scalar_field(&json, "schemaVersion", "3", "2");
     assert_raw_duplicate_rejected(&second_then_first, "schemaVersion");
 }
 
@@ -515,10 +527,10 @@ fn schema_version_detection_rejects_missing_invalid_and_future_versions() {
     }
 
     let mut future = base;
-    future["schemaVersion"] = serde_json::json!(2);
+    future["schemaVersion"] = serde_json::json!(3);
     assert!(matches!(
         decode_value(future),
-        Err(PersistenceError::UnsupportedSchemaVersion { version: 2 })
+        Err(PersistenceError::UnsupportedSchemaVersion { version: 3 })
     ));
 }
 
@@ -593,8 +605,8 @@ fn strict_schema_and_corruption_inputs_fail_without_partial_project() {
     ));
 
     let mut invalid_alignment = base.clone();
-    invalid_alignment["scenarios"][0]["network"]["roads"][0]["alignment"]["start"]["x"] =
-        serde_json::json!(null);
+    invalid_alignment["scenarios"][0]["network"]["roads"][0]["alignment"]["segments"][0]
+        ["primitive"]["start"]["x"] = serde_json::json!(null);
     assert!(decode_value(invalid_alignment).is_err());
 
     let mut negative_width = base.clone();
@@ -659,8 +671,8 @@ fn strict_schema_and_corruption_inputs_fail_without_partial_project() {
     assert!(decode_project_from_json(&huge_exponent).is_err());
 
     let mut null_number = base;
-    null_number["scenarios"][0]["network"]["roads"][0]["alignment"]["start"]["x"] =
-        serde_json::Value::Null;
+    null_number["scenarios"][0]["network"]["roads"][0]["alignment"]["segments"][0]["primitive"]
+        ["start"]["x"] = serde_json::Value::Null;
     assert!(decode_value(null_number).is_err());
 }
 
