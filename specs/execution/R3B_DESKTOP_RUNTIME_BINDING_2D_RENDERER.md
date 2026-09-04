@@ -349,7 +349,7 @@ Use exact resolved stable versions and commit:
 - `package.json`;
 - `package-lock.json`.
 
-Expected direct families:
+Expected direct families during the comparator (final selected graph must remove any direct dependency that becomes unused):
 
 - `react`;
 - `react-dom`;
