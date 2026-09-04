@@ -440,13 +440,13 @@ pub fn encode_project_to_bytes(project: &Project) -> Result<Vec<u8>, Persistence
     })
 }
 
-/// Decode the current schema, schema v1, or the explicitly supported synthetic
+/// Decode the current schema, schema v1, or the explicitly supported historical
 /// pre-release v0 fixture into a validated canonical Project.
 pub fn decode_project_from_json(json: &str) -> Result<Project, PersistenceError> {
     decode_project_from_bytes(json.as_bytes())
 }
 
-/// Decode the current schema, schema v1, or the explicitly supported synthetic
+/// Decode the current schema, schema v1, or the explicitly supported historical
 /// pre-release v0 fixture from UTF-8 JSON bytes.
 pub fn decode_project_from_bytes(bytes: &[u8]) -> Result<Project, PersistenceError> {
     let document = decode_document(bytes)?;
@@ -508,7 +508,11 @@ fn decode_document(bytes: &[u8]) -> Result<ProjectDocumentV2, PersistenceError> 
                 serde_json::from_slice(bytes).map_err(json_decode_error)?;
             migrate_v1(historical)
         }
-        0 => migrate_v0(bytes),
+        0 => {
+            let historical: ProjectDocumentV0 =
+                serde_json::from_slice(bytes).map_err(json_decode_error)?;
+            migrate_v0(historical)
+        }
         version if version > CURRENT_SCHEMA_VERSION => {
             Err(PersistenceError::UnsupportedSchemaVersion { version })
         }
@@ -540,18 +544,6 @@ struct ProjectDocumentV0 {
     traffic_side: schema::TrafficSideDocumentV1,
     coordinate_context: schema::CoordinateContextDocumentV1,
     scenarios: Vec<schema::ScenarioDocumentV1>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct ProjectDocumentV0Composite {
-    schema_version: u32,
-    project_id: String,
-    name: String,
-    canonical_units: String,
-    traffic_side: schema::TrafficSideDocumentV1,
-    coordinate_context: schema::CoordinateContextDocumentV1,
-    scenarios: Vec<schema::ScenarioDocumentV2>,
 }
 
 fn migrate_v1(historical: ProjectDocumentV1) -> Result<ProjectDocumentV2, PersistenceError> {
@@ -602,12 +594,9 @@ fn migrate_v1(historical: ProjectDocumentV1) -> Result<ProjectDocumentV2, Persis
     })
 }
 
-fn migrate_v0(bytes: &[u8]) -> Result<ProjectDocumentV2, PersistenceError> {
-    if let Ok(historical) = serde_json::from_slice::<ProjectDocumentV0>(bytes) {
-        return migrate_v0_v1(historical);
-    }
-    let historical: ProjectDocumentV0Composite =
-        serde_json::from_slice(bytes).map_err(json_decode_error)?;
+fn migrate_v0(historical: ProjectDocumentV0) -> Result<ProjectDocumentV2, PersistenceError> {
+    // Historical v0 differs from the accepted v1 document only in the
+    // equivalent spelling "metres" for the v1 canonical "m" value.
     if historical.schema_version != 0 {
         return Err(PersistenceError::Migration {
             message: format!(
@@ -618,34 +607,7 @@ fn migrate_v0(bytes: &[u8]) -> Result<ProjectDocumentV2, PersistenceError> {
     }
     if historical.canonical_units != "metres" {
         return Err(PersistenceError::Migration {
-            message: "synthetic v0 canonicalUnits must be \"metres\"".to_owned(),
-        });
-    }
-    Ok(ProjectDocumentV2 {
-        schema_version: CURRENT_SCHEMA_VERSION,
-        project_id: historical.project_id,
-        name: historical.name,
-        canonical_units: schema::CanonicalUnitsDocumentV1::Metres,
-        traffic_side: historical.traffic_side,
-        coordinate_context: historical.coordinate_context,
-        scenarios: historical.scenarios,
-    })
-}
-
-fn migrate_v0_v1(historical: ProjectDocumentV0) -> Result<ProjectDocumentV2, PersistenceError> {
-    // Synthetic pre-release R2 v0 fixture: the only supported difference is
-    // the equivalent spelling "metres" for the v1 canonical "m" value.
-    if historical.schema_version != 0 {
-        return Err(PersistenceError::Migration {
-            message: format!(
-                "pre-release fixture has schemaVersion {}, expected 0",
-                historical.schema_version
-            ),
-        });
-    }
-    if historical.canonical_units != "metres" {
-        return Err(PersistenceError::Migration {
-            message: "synthetic v0 canonicalUnits must be \"metres\"".to_owned(),
+            message: "historical v0 canonicalUnits must be \"metres\"".to_owned(),
         });
     }
     migrate_v1(ProjectDocumentV1 {

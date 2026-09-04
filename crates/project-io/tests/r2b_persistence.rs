@@ -426,21 +426,31 @@ fn finite_engineering_f64_corpus_round_trips_bit_exactly() {
 }
 
 #[test]
-fn synthetic_pre_release_v0_migration_is_explicit_deterministic_and_lossless() {
-    let project = representative_project();
-    let current_json = encode_project_to_json(&project).expect("encode current");
-    let mut historical: serde_json::Value = serde_json::from_str(&current_json).expect("JSON");
-    historical["schemaVersion"] = serde_json::json!(0);
-    historical["canonicalUnits"] = serde_json::json!("metres");
-    let historical_json = serde_json::to_string(&historical).expect("synthetic v0 fixture");
+fn historical_pre_release_v0_fixture_migration_is_deterministic_and_lossless() {
+    const V0_FIXTURE: &str = include_str!("fixtures/r2b_schema_v0.json");
+    const V1_FIXTURE: &str = include_str!("fixtures/r2b_schema_v1.json");
 
-    let migrated = decode_project_from_json(&historical_json).expect("migrate v0");
-    let migrated_again = decode_project_from_json(&historical_json).expect("repeat v0 migration");
-    assert_eq!(migrated, project);
+    let historical: serde_json::Value = serde_json::from_str(V0_FIXTURE).expect("v0 JSON");
+    assert_eq!(historical["schemaVersion"], 0);
+    assert_eq!(historical["canonicalUnits"], "metres");
+    assert!(!V0_FIXTURE.contains("\"segments\""));
+
+    let migrated = decode_project_from_json(V0_FIXTURE).expect("migrate v0");
+    let migrated_again = decode_project_from_json(V0_FIXTURE).expect("repeat v0 migration");
+    let migrated_v1 = decode_project_from_json(V1_FIXTURE).expect("migrate v1");
+    assert_eq!(migrated, migrated_v1);
     assert_eq!(migrated, migrated_again);
     assert_eq!(
-        encode_project_to_json(&migrated).expect("encode migrated project"),
-        current_json,
+        migrated.scenarios()[0].network().roads()[0]
+            .alignment()
+            .segment_ids()[0]
+            .as_str(),
+        "segment-0"
+    );
+    let migrated_json = encode_project_to_json(&migrated).expect("encode migrated project");
+    let migrated_value: serde_json::Value = serde_json::from_str(&migrated_json).expect("JSON");
+    assert_eq!(
+        migrated_value["schemaVersion"], 2,
         "migration emits current schema v2 only"
     );
 }

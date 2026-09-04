@@ -211,27 +211,33 @@ fn current_writer_emits_v2_segments_and_composite_round_trip_is_bit_stable() {
 }
 
 #[test]
-fn schema_v1_single_primitive_migrates_to_deterministic_segment_zero() {
-    let source = support::representative_project();
-    let current_json = encode_project_to_json(&source).expect("encode current");
-    let mut v1: serde_json::Value = serde_json::from_str(&current_json).expect("JSON");
-    v1["schemaVersion"] = serde_json::json!(1);
-    for scenario in v1["scenarios"].as_array_mut().expect("scenarios") {
-        for road in scenario["network"]["roads"].as_array_mut().expect("roads") {
-            let primitive = road["alignment"]["segments"][0]["primitive"].clone();
-            road["alignment"] = primitive;
-        }
-    }
-    let v1_json = serde_json::to_string(&v1).expect("v1 fixture");
+fn fixed_schema_v1_fixture_migrates_to_deterministic_segment_zero() {
+    const V1_FIXTURE: &str = include_str!("fixtures/r2b_schema_v1.json");
 
-    let migrated = decode_project_from_json(&v1_json).expect("migrate v1");
-    let migrated_again = decode_project_from_json(&v1_json).expect("repeat migration");
-    assert_eq!(migrated, source);
+    let migrated = decode_project_from_json(V1_FIXTURE).expect("migrate v1");
+    let migrated_again = decode_project_from_json(V1_FIXTURE).expect("repeat migration");
     assert_eq!(migrated, migrated_again);
+    assert_eq!(migrated.id().as_str(), "fixture-r2b-v1");
+    assert_eq!(migrated.name(), "R2B schema v1 fixture");
     for scenario in migrated.scenarios() {
+        assert_eq!(scenario.id().as_str(), "scenario-existing");
         for road in scenario.network().roads() {
+            assert_eq!(road.id().as_str(), "R01");
             assert_eq!(road.alignment().segment_count(), 1);
             assert_eq!(road.alignment().segment_ids()[0].as_str(), "segment-0");
+            assert_eq!(road.alignment().length(), 300.0);
+            assert_eq!(
+                road.alignment().start_point(&policy()).expect("start").x,
+                1_000_000_000.125
+            );
+            assert_eq!(
+                road.alignment().end_point(&policy()).expect("end").x,
+                1_000_000_300.125
+            );
+            assert_eq!(
+                road.cross_section().components()[0].id().as_str(),
+                "lane-main"
+            );
         }
     }
     let migrated_json = encode_project_to_json(&migrated).expect("encode migrated");
@@ -240,7 +246,16 @@ fn schema_v1_single_primitive_migrates_to_deterministic_segment_zero() {
     assert!(
         migrated_value["scenarios"][0]["network"]["roads"][0]["alignment"]["segments"].is_array()
     );
-    assert_eq!(migrated_json, current_json);
+    assert_eq!(
+        migrated_value["scenarios"][0]["network"]["roads"][0]["alignment"]["segments"][0]
+            ["segmentId"],
+        "segment-0"
+    );
+    assert_eq!(
+        migrated_value["scenarios"][0]["network"]["roads"][0]["alignment"]["segments"][0]
+            ["primitive"]["kind"],
+        "line"
+    );
 }
 
 #[test]
@@ -284,6 +299,13 @@ fn composite_schema_rejects_future_unknown_empty_duplicate_gap_and_nonfinite_inp
     assert!(matches!(
         decode_project_from_json(&serde_json::to_string(&future).expect("future JSON")),
         Err(PersistenceError::UnsupportedSchemaVersion { version: 3 })
+    ));
+
+    let mut v2_mislabeled_as_v0 = base.clone();
+    v2_mislabeled_as_v0["schemaVersion"] = serde_json::json!(0);
+    assert!(matches!(
+        decode_project_from_json(&serde_json::to_string(&v2_mislabeled_as_v0).expect("v0 JSON")),
+        Err(PersistenceError::JsonDecode { .. })
     ));
 
     let mut unknown = base.clone();

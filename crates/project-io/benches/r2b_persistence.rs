@@ -158,11 +158,8 @@ fn benchmark_project() -> Project {
     project
 }
 
-fn historical_v0(json: &str) -> String {
-    let mut value: serde_json::Value = serde_json::from_str(json).expect("current JSON");
-    value["schemaVersion"] = serde_json::json!(0);
-    value["canonicalUnits"] = serde_json::json!("metres");
-    serde_json::to_string(&value).expect("v0 JSON")
+fn historical_v0() -> &'static str {
+    include_str!("../tests/fixtures/r2b_schema_v0.json")
 }
 
 fn measure<T>(label: &str, iterations: usize, mut operation: impl FnMut() -> T) -> T {
@@ -184,7 +181,7 @@ fn main() {
     let project = benchmark_project();
     let json = encode_project_to_json(&project).expect("encode");
     let bytes = json.as_bytes();
-    let historical = historical_v0(&json);
+    let historical = historical_v0();
     let iterations = 2_000;
     println!(
         "R2B persistence benchmark: target_os={} target_arch={} document_bytes={}",
@@ -199,8 +196,8 @@ fn main() {
     black_box(measure("decode JSON -> Project", iterations, || {
         black_box(decode_project_from_bytes(black_box(bytes)).expect("decode"))
     }));
-    black_box(measure("v0 -> v1 migration/load", iterations, || {
-        black_box(decode_project_from_json(black_box(&historical)).expect("migrate"))
+    black_box(measure("v0 -> v2 migration/load", iterations, || {
+        black_box(decode_project_from_json(black_box(historical)).expect("migrate"))
     }));
     black_box(measure("complete in-memory save/load", iterations, || {
         let encoded = encode_project_to_bytes(black_box(&project)).expect("encode");
