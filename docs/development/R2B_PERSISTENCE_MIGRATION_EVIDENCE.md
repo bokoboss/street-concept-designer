@@ -69,7 +69,7 @@ deserializes only the top-level `schemaVersion` field from the original bytes.
 It allows unrelated top-level fields, but `schemaVersion` is a known Serde
 field, so duplicate versions fail during the probe. Once the version is
 resolved, v1 uses `serde_json::from_slice::<ProjectDocumentV1>(bytes)` and
-synthetic v0 uses `serde_json::from_slice::<ProjectDocumentV0>(bytes)` on the
+historical v0 uses `serde_json::from_slice::<ProjectDocumentV0>(bytes)` on the
 same original bytes before explicit migration. The whole-project
 `serde_json::Value` intermediary and both production `from_value` calls were
 removed. `serde_json::Value` remains only as the probe's scalar value carrier,
