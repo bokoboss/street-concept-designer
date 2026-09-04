@@ -1,6 +1,6 @@
 # R3 — 2D Road Authoring Alpha
 
-Status: CONTROL-PLANE PLANNED / IMPLEMENTATION NOT STARTED
+Status: R3A ACCEPTED / COMPLETED; R3B CONTROL-PLANE PLANNED; R3B IMPLEMENTATION NOT STARTED
 
 ## Product outcome
 
@@ -75,6 +75,8 @@ See:
 
 ## R3A — Composite Alignment Productionization
 
+Status: **ACCEPTED / COMPLETED** via PR #32, squash merge `127aa01556eeb73c1daca160b3e2fa68e211dca8`.
+
 Outcome:
 one Road may own a stable ordered sequence of accepted alignment primitives with one continuous station domain and deterministic point/tangent/normal/projection/sampling behavior.
 
@@ -91,6 +93,12 @@ Required:
 No UI/frontend dependency.
 
 ## R3B — Desktop Runtime / Binding / 2D Renderer Proof
+
+Status: **NEXT / SEPARATELY GATED**.
+
+Authoritative planning inputs:
+- `docs/development/R3B_RUNTIME_BRIDGE_RESEARCH.md`
+- `specs/execution/R3B_DESKTOP_RUNTIME_BINDING_2D_RENDERER.md`
 
 Outcome:
 a minimal production desktop window renders a representative accepted Project/R1C 2D scene with semantic selection mapping.

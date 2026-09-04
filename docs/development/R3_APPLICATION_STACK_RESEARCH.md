@@ -1,5 +1,7 @@
 # R3 Application Stack and Bridge Research Gate
 
+> **2026-09-04 update:** R3A is accepted. The application-stack direction remains valid, and the bridge comparator/security/dependency/selection method is now refined in `docs/development/R3B_RUNTIME_BRIDGE_RESEARCH.md`. That R3B record is authoritative for the next execution packet and supersedes the earlier statement that composite alignment still blocks application work.
+
 Date: 2026-09-03
 
 ## Decision

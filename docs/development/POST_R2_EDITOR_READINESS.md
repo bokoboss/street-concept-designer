@@ -4,7 +4,7 @@ Date: 2026-09-03
 
 ## Status
 
-**R2 ACCEPTED / COMPLETED. R3 MAY BE PLANNED, BUT R3 IMPLEMENTATION MUST START WITH THE COMPOSITE-ALIGNMENT PREREQUISITE.**
+**R2 ACCEPTED / COMPLETED. R3A COMPOSITE ALIGNMENT ACCEPTED / COMPLETED. R3B DESKTOP RUNTIME / BINDING / 2D RENDERER PROOF IS THE NEXT SEPARATELY GATED PACKET.**
 
 Accepted R2 main SHA:
 `fb933bb9c5da49225c3d6b7e52176e270c117cce`
@@ -42,22 +42,22 @@ The project has evidence-backed foundations for:
 
 ## Post-R2 scrutiny findings
 
-### 1. Road alignment is still single-primitive
+### 1. Composite-alignment blocker — RESOLVED BY ACCEPTED R3A
 
-The accepted runtime `Alignment` is currently one of:
+Before R3A, the accepted runtime `Alignment` was one of:
 - Line;
 - CircularArc;
 - SmoothConceptualCurve.
 
-One Road therefore cannot yet own an ordered line/arc/curve sequence.
+One Road therefore could not yet own an ordered line/arc/curve sequence.
 
-This is acceptable as an R1 architecture proof, but it is not sufficient for production Road Draw/Edit. Splitting one user road into multiple Road objects would corrupt the intended abstraction:
+That was acceptable as an R1 architecture proof, but not sufficient for production Road Draw/Edit. Splitting one user road into multiple Road objects would corrupt the intended abstraction:
 - one road identity;
 - one station domain;
 - one cross-section/lane lifecycle;
 - one history-level edit target.
 
-**R3 Road Draw is blocked until this is corrected.**
+**Resolved:** R3A PR #32 was independently accepted and squash-merged as `127aa01556eeb73c1daca160b3e2fa68e211dca8`. One Road now owns an ordered tangent-continuous composite alignment with one cumulative station domain and stable segment ids.
 
 ### 2. R2 command inventory is deliberately minimal
 
@@ -95,6 +95,8 @@ R3 executes through separately accepted packets. No packet starts the next autom
 
 ### R3A — Composite Alignment Productionization
 
+Status: **ACCEPTED / COMPLETED**.
+
 Purpose:
 make one Road capable of owning a stable ordered multi-segment reference alignment while preserving one continuous station domain.
 
@@ -108,6 +110,12 @@ Touches:
 This is the first required R3 packet.
 
 ### R3B — Desktop Runtime / Binding / 2D Renderer Proof
+
+Status: **NEXT / CONTROL-PLANE GATED**.
+
+Research/contract:
+- `docs/development/R3B_RUNTIME_BRIDGE_RESEARCH.md`
+- `specs/execution/R3B_DESKTOP_RUNTIME_BINDING_2D_RENDERER.md`
 
 Purpose:
 adopt the minimum production application stack and select the Rust-to-UI session bridge by evidence.
@@ -192,7 +200,7 @@ R3 does not authorize:
 - R3F: **STRICT** — project schema/reference calibration/file handling.
 - R3G: acceptance/qualification; independent review required for R3 exit.
 
-## R3A start checklist
+## Historical R3A start checklist
 
 Before coding:
 - [ ] post-R2/R3 control-plane PR merged;
@@ -217,4 +225,6 @@ Stop with `ARCHITECTURE_ESCALATION` rather than hiding a conflict if composite a
 
 **R3 PLANNING: GO WITH CONDITIONS.**
 
-**R3A COMPOSITE ALIGNMENT: READY AFTER THIS CONTROL-PLANE BASELINE IS MERGED AND AN EXACT EXECUTION BASE IS RECORDED.**
+**R3A: ACCEPTED / COMPLETED.**
+
+**R3B: GO WITH CONDITIONS after its control-plane contract is merged and the exact execution base is recorded in the R3B Issue.**
