@@ -30,8 +30,8 @@ review or final engineering acceptance.
 - Existing `Road`, `CrossSection`, lane lifecycle, junction, shared 2D/3D
   derivation, and R2C command/history paths remain the semantic owners.
 - The canonical writer emits schema v2 segment records. Schema v1 single
-  primitive records receive deterministic id `segment-0`; the synthetic
-  pre-release v0 fixture remains readable.
+  primitive records receive deterministic id `segment-0`; the checked-in
+  historical pre-release v0 fixture remains readable.
 
 ## Local qualification
 
@@ -65,7 +65,7 @@ Representative local benchmark results (Windows GNU, Rust 1.98.0):
 ProjectSession local benchmarks also ran for 3/10/50 segments, covering
 Project clone, preview, and commit paths.
 
-## Hosted qualification
+## Initial hosted qualification
 
 Pull request [#32](https://github.com/bokoboss/street-concept-designer/pull/32)
 is open against `main` and remains unmerged.  The runtime implementation is
@@ -91,3 +91,46 @@ All listed runs completed successfully.  The final PR check state is
 authoritative for the current head because this evidence record is itself
 versioned on the branch.  This is execution evidence, not independent review
 or final engineering acceptance; the PR was intentionally left unmerged.
+
+## Independent-review remediation
+
+The independent review disposition for PR #32 was `REMEDIATE`, limited to the
+persistence/schema path. The composite kernel, stationing, sampling,
+projection, R1C derivation, junction reconstruction, and `ProjectSession`
+surfaces were not refactored.
+
+The remediation:
+
+- removed `ProjectDocumentV0Composite` and the alternate v0 fallback;
+- restored strict historical v0 parsing as the historical v1-shaped document
+  with `schemaVersion: 0` and canonicalUnits `"metres"`;
+- uses the fixed schema-v1 migration path, assigning one primitive the
+  deterministic segment id `segment-0` and writing only schema v2;
+- added immutable checked-in fixtures
+  [`r2b_schema_v1.json`](../../crates/project-io/tests/fixtures/r2b_schema_v1.json)
+  and [`r2b_schema_v0.json`](../../crates/project-io/tests/fixtures/r2b_schema_v0.json).
+
+The v1 fixture preserves the accepted R2B historical document shape and is
+checked in as a reviewable artifact rather than synthesized from the current
+v2 writer. Its provenance is the accepted R2B schema-v1 shape present at the
+accepted base `43bb019906240dd49edf735d32ef969ab498cee3`; the v0 fixture is
+the genuine pre-release spelling of that same historical shape, with only
+`schemaVersion: 0` and canonicalUnits `"metres"`. Regression coverage verifies
+deterministic v1 and v0 migration, value/id preservation, schema-v2-only
+writing, current v2 round-trip behavior, finite-input and Junction behavior,
+strict rejection, and rejection of a valid v2 composite document mislabeled as
+schema v0.
+
+The remediation implementation is commit
+`119630d96b98ed23f4b7e17b440ce0f382175777`. Its hosted qualification completed
+successfully:
+
+- Engineering Workflow Integrity: `33828898264`;
+- R1A/R1B/R1C: `33828898318`, `33828898254`, `33828898246`;
+- R2A/R2B/R2C: `33828898230`, `33828898258`, `33828898251`;
+- R3A Composite Alignment: `33828898248`.
+
+The evidence revision that records this remediation is documentation-only and
+does not change runtime behavior. Independent re-review remains pending; this
+record is execution evidence, not final engineering acceptance, and PR #32
+remains intentionally unmerged.
