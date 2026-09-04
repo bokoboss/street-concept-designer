@@ -83,7 +83,7 @@ Statuses:
 | Road source-of-truth = reference alignment + semantics | LOCKED | supports arbitrary plan geometry and derived views |
 | Station-based longitudinal model | LOCKED | taper/add/drop/feature lifecycle |
 | Initial alignment primitives: line + circular arc + smooth conceptual curve | LOCKED FOR R1 | sufficient initial proof; future spiral hook preserved |
-| One Road owns an ordered composite alignment of stable primitive segments | EVIDENCE_GATED / R3A REQUIRED | post-R2 scrutiny found single-primitive Road alignment insufficient for production Road Draw; must preserve one Road identity and cumulative station domain |
+| One Road owns an ordered composite alignment of stable primitive segments | LOCKED | accepted R3A preserves one Road identity, stable segment ids, cumulative stationing, tangent-continuous composition, and road-global cross-section/lane lifecycle |
 | Clothoid/spiral | DEFERRED | architecture hook only until need/UX proven |
 | Lane/component width varies by station | LOCKED | fundamental feature |
 | Turn pocket uses general lane lifecycle | LOCKED | prevents special-case technical debt |
@@ -125,6 +125,9 @@ Statuses:
 | R3 semantic-session bridge = WASM vs native Tauri IPC | EVIDENCE_GATED / R3B REQUIRED | benchmark representative preview/scene transfer and choose exactly one authoritative ProjectSession owner |
 | Dual native + WASM semantic sessions | REJECTED | creates synchronization/stale-state risk and violates single semantic source-of-truth |
 | Three.js 3D | EVIDENCE_GATED/PREFERRED | strong candidate; production prototype must confirm |
+| WebGPU as mandatory 3D backend | EVIDENCE_GATED / NOT ASSUMED | Pascal prior art proves one viable environment only; Windows office-PC/WebView2 compatibility and fallback must be qualified |
+| Renderer batching/instancing may change draw representation but not semantic identity | LOCKED | performance representation is disposable; selection/project identity remains semantic |
+| Runtime and export representations may differ while deriving from one semantic asset/model | LOCKED | enables instancing/LOD/proxies without a second project model |
 | Separate 2D and 3D geometry engines | REJECTED_INITIAL | divergence risk |
 | Photorealism before engineering 3D | REJECTED_INITIAL | wrong priority |
 
@@ -188,6 +191,12 @@ Statuses:
 | Semantic assemblies for signs/signals/lights | LOCKED | reusable 2D/3D + metadata |
 | Complex presentation props may use normalized GLB | LOCKED | practical art pipeline |
 | One semantic asset can have 2D + 3D representations | LOCKED | selection/placement consistency |
+| Persisted generated asset distributions/variation are deterministic | LOCKED | save/reopen/undo/export must reproduce the same authored/presentation state |
+| Geometry-variant versus per-instance state for repeated props | EVIDENCE_GATED/PREFERRED | reduces regeneration and enables shared geometry without changing semantic ownership |
+| Variant caching + instancing/batching for repeated presentation assets | EVIDENCE_GATED/PREFERRED | strong R6/R8 performance candidate; must preserve selection identity and pass representative benchmarks |
+| Internal declarative asset-definition registry | EVIDENCE_GATED/PREFERRED | can drive parameters/placement/2D/3D/AI metadata without hard-coding every asset kind |
+| Public third-party plugin API during the core roadmap | DEFERRED / POST-R9 | internal registry value does not justify public compatibility/versioning burden yet |
+| Pascal Editor as application/framework base | REJECTED_INITIAL | useful prior art but canonical Rust project/session, transaction, desktop, and engineering constraints differ materially |
 | User manually produces SVG/GLB as prerequisite | REJECTED_INITIAL | conflicts with user constraint |
 | Core traffic-control assets copied from competitors | REJECTED_INITIAL | license/correctness risk |
 | Generic CC0 presentation assets | SOURCE_GATED/PREFERRED | useful after provenance/normalization |
@@ -265,3 +274,10 @@ If a LOCKED decision proves technically unsound:
 3. propose alternatives;
 4. scrutinize architecture;
 5. update this register only through an explicit accepted decision change.
+
+
+# External prior-art disposition
+
+The 2026-09-03 Pascal Editor / Nature plugin review is recorded at `docs/research/PASCAL_EDITOR_PRIOR_ART_REVIEW.md`.
+
+Disposition: **GO WITH CONDITIONS as reference prior art only**. It may inform R6/R8 representation, instancing, asset-definition, selection, and performance design. It does not expand R3, adopt Pascal's scene/store architecture, create a public plugin API, or lock WebGPU/ez-tree/Three.js dependencies.
