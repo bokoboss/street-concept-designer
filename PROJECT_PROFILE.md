@@ -11,13 +11,14 @@
 - Accepted branch: `main`
 - Accepted HEAD SHA: resolve from current `main` when a bounded execution task creates its branch/worktree; record that exact base SHA in the task/PR/evidence package rather than self-referentially pinning it in this file
 - Accepted date: 2026-09-04
-- Current phase/milestone: R2 Production Project Core and R3A Composite Alignment Productionization are accepted/completed; R3B Desktop Runtime / Binding / 2D Renderer Proof is the next separately gated control-plane packet and has not started
-- Last accepted milestone PR / CI: R3A PR #32 (`R3A: Composite Alignment Productionization`) independently re-reviewed `PASS` / scrutinized `GO` at accepted PR head `943d068e9351d44920f8048da21af22b2aabc459`, then squash-merged as `127aa01556eeb73c1daca160b3e2fa68e211dca8`; final-head Workflow Integrity `33829933401`, R1A `33829933407`, R1B `33829933385`, R1C `33829933448`, R2A `33829933507`, R2B `33829933436`, R2C `33829933420`, and R3A `33829933455` all PASS
+- Current phase/milestone: R2 Production Project Core and R3A Composite Alignment Productionization are accepted/completed; R3B Desktop Runtime / Binding / 2D Renderer Proof control-plane planning is accepted, while R3B implementation remains separately gated and has not started
+- Last accepted implementation milestone: R3A PR #32 independently re-reviewed `PASS` / scrutinized `GO` at accepted PR head `943d068e9351d44920f8048da21af22b2aabc459`, squash-merged as `127aa01556eeb73c1daca160b3e2fa68e211dca8`.
+- Last accepted control-plane milestone: R3B planning PR #35 (`Plan R3B desktop runtime, bridge comparator, and 2D proof`) scrutinized `GO WITH CONDITIONS`, all final-head conditions passed at `f0f9aebd3e9bc0c26386ad801abdb397e04d0975`, and squash-merged as `87894add3d73f3debd59080922a1c492736764ed`; final-head Workflow Integrity `33832064165`, R1A `33832064151`, R1B `33832064179`, R1C `33832064181`, R2A `33832064171`, R2B `33832064170`, R2C `33832064162`, and R3A `33832064164` all PASS
 
 ## Technology stack
 - Languages: Rust is accepted for the production engineering kernel; TypeScript remains the candidate future application/UI language
-- Frameworks: R3 research supports Tauri 2 + React/TypeScript + Vite + PixiJS as the bounded desktop/2D adoption path; exact versions and the Rust-to-UI bridge remain evidence-gated for R3B. Three.js and MapLibre are intentionally not part of the first R3 runtime packet
-- Package manager: Cargo established for the Rust kernel; frontend package manager not yet established
+- Frameworks: accepted R3B control-plane direction is Tauri 2 + React/TypeScript + Vite + PixiJS 8 (WebGL for the R3B proof). Exact dependency pins and the authoritative Rust-to-UI `ProjectSession` owner remain evidence-gated until the R3B comparator is accepted. Three.js, MapLibre, WebGPU, and Web Worker architecture are outside R3B
+- Package manager: Cargo established for the Rust engineering core; R3B control-plane selects project-local npm + checked-in `package-lock.json` for the frontend/app proof, subject to implementation qualification
 - Supported OS/runtime: Windows-first desktop target; Windows x64 first. Product requires per-user installer plus no-install Portable distribution; final OS/runtime compatibility remains qualification-gated
 
 ## Standard commands
@@ -74,9 +75,9 @@ Changes must not alter the following unless explicitly approved:
 ## Important paths
 - Source: `src/` (accepted R1 engineering kernel/shared derivation) + `crates/project-core/` (accepted R2A Project/Scenario domain package) + `crates/project-io/` (accepted R2B persistence/migration) + `crates/project-session/` (accepted R2C command/history boundary)
 - Tests: `tests/` (accepted R1A/R1B/R1C coverage) + `crates/project-core/tests/` (R2A) + `crates/project-io/tests/` (R2B) + `crates/project-session/tests/` (R2C)
-- Documentation: `docs/`
+- Documentation: `docs/` including `docs/development/R3B_RUNTIME_BRIDGE_RESEARCH.md`
 - Specifications: `specs/`
-- Execution contracts: `specs/execution/`
+- Execution contracts: `specs/execution/` including `R3B_DESKTOP_RUNTIME_BINDING_2D_RENDERER.md`
 - Development workflow templates: `docs/development/templates/`
 - Generated output: not established
 - Local-only / sensitive / licensed data: not established; must never be committed without explicit policy
@@ -108,7 +109,7 @@ Changes must not alter the following unless explicitly approved:
 - Baseline pinning policy: execution tasks must record the exact `main` base SHA at branch/worktree creation in the task/PR/evidence package; do not attempt to make an in-repository profile file self-reference its own HEAD SHA
 
 ## Current known limitations / risks
-- No production desktop/editor shell exists yet; R3 application stack remains unadopted until the R3B bridge/runtime proof.
+- No production desktop/editor shell exists yet. R3B has an accepted stack/bridge research direction and execution contract, but Tauri/React/Vite/PixiJS dependency pins and the native-vs-WASM `ProjectSession` owner remain unadopted until R3B evidence is accepted.
 - Rust is accepted for the current R1 kernel path; no third-party geometry library has been required through R1B.
 - Current UI/rendering stack is candidate architecture only.
 - R2B persistence reconstructs canonical projects with the accepted default `TolerancePolicy`; non-default numerical policy is not persisted project state and must not become user-facing without a separate versioning decision.
@@ -118,4 +119,4 @@ Changes must not alter the following unless explicitly approved:
 - Windows portable/offline packaging is a product requirement but remains release-engineering evidence-gated; do not assume a bare Tauri executable is a qualified portable release.
 
 ## Current next objective
-- Establish and scrutinize the bounded R3B execution contract from the accepted R3A baseline. R3B must run the planned WASM-direct versus native Tauri IPC bridge comparator, qualify the desktop/2D stack and exact dependency licenses/versions, and select exactly one authoritative `ProjectSession` owner before production adoption. Do not start R3B implementation automatically from R3A acceptance.
+- Execute only the separately pinned R3B packet under `specs/execution/R3B_DESKTOP_RUNTIME_BINDING_2D_RENDERER.md`: compare WASM-owned versus native-Tauri-IPC-owned `ProjectSession` using the same semantic fixture/operations, measure bridge latency plus UI-thread/rAF health, select exactly one owner, qualify the minimal Tauri/React/Vite/PixiJS WebGL desktop proof and dependency/license graph, and leave R3C unstarted until R3B independent acceptance.
