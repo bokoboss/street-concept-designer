@@ -1,0 +1,11 @@
+[package]
+name = "street-concept-designer-bridge-common"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+street-concept-designer-kernel = { path = "../../../" }
+street-concept-designer-project-core = { path = "../../../crates/project-core" }
+street-concept-designer-project-io = { path = "../../../crates/project-io" }
+street-concept-designer-project-session = { path = "../../../crates/project-session" }
