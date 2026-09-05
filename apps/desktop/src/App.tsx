@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import "pixi.js/unsafe-eval";
 import { Application, Container, Graphics, RendererType } from "pixi.js";
 import { bridgeInfo, bridgeScene } from "./wasmBridge";
-import { sceneBounds, sceneSignature, type ScenePacket, type ScenePrimitive } from "./types";
+import { sceneBounds, type ScenePacket, type ScenePrimitive } from "./types";
 
 function roleLabel(role: number): string {
   return ["road alignment", "road component surface", "junction surface", "corner curve"][role] ?? "derived primitive";
@@ -15,6 +15,19 @@ function primitiveColor(primitive: ScenePrimitive): number {
   return 0xf59e0b;
 }
 
+function rendererSignature(world: Container): string {
+  return JSON.stringify(world.children.map((child) => {
+    const bounds = child.getLocalBounds();
+    return {
+      label: child.label,
+      minX: bounds.minX,
+      minY: bounds.minY,
+      maxX: bounds.maxX,
+      maxY: bounds.maxY,
+    };
+  }));
+}
+
 function buildRenderer(
   world: Container,
   scene: ScenePacket,
@@ -22,7 +35,7 @@ function buildRenderer(
   select: (id: string) => void,
   width: number,
   height: number,
-) {
+): string {
   world.removeChildren().forEach((child) => child.destroy({ children: true }));
   const [minX, minY, maxX, maxY] = sceneBounds(scene);
   const scale = Math.min((width - 80) / Math.max(maxX - minX, 1), (height - 80) / Math.max(maxY - minY, 1));
@@ -46,6 +59,7 @@ function buildRenderer(
     graphics.on("pointertap", () => select(primitive.semanticId));
     world.addChild(graphics);
   }
+  return rendererSignature(world);
 }
 
 export function App() {
@@ -109,7 +123,7 @@ export function App() {
 
   const rebuildRenderer = () => {
     if (!scene || !worldRef.current) return;
-    const before = sceneSignature(scene);
+    const before = rendererSignature(worldRef.current);
     buildRenderer(
       worldRef.current,
       scene,
@@ -118,7 +132,7 @@ export function App() {
       hostRef.current?.clientWidth ?? 900,
       hostRef.current?.clientHeight ?? 560,
     );
-    setRebuild(before === sceneSignature(scene) ? "equivalent" : "mismatch");
+    setRebuild(before === rendererSignature(worldRef.current) ? "equivalent" : "mismatch");
   };
 
   return (

@@ -166,6 +166,39 @@ async function dragRun(candidate: Candidate, run: number) {
   };
 }
 
+function assertEqualPacket(label: string, nativeRaw: unknown, wasmRaw: unknown) {
+  const nativeBytes = toBytes(nativeRaw);
+  const wasmBytes = toBytes(wasmRaw);
+  if (nativeBytes.byteLength !== wasmBytes.byteLength) throw new Error(`${label} byte length mismatch`);
+  for (let index = 0; index < nativeBytes.byteLength; index += 1) {
+    if (nativeBytes[index] !== wasmBytes[index]) throw new Error(`${label} byte mismatch at ${index}`);
+  }
+  const nativePacket = decodeScene(nativeBytes);
+  const wasmPacket = decodeScene(wasmBytes);
+  if (JSON.stringify(nativePacket) !== JSON.stringify(wasmPacket)) throw new Error(`${label} semantic mismatch`);
+}
+
+async function assertCandidateParity(native: Candidate, wasm: Candidate) {
+  await native.init();
+  await wasm.init();
+  for (const size of ["S", "M", "L"] as const) {
+    assertEqualPacket(`scene-${size}`, await native.scene(size), await wasm.scene(size));
+  }
+  assertEqualPacket("preview", await native.preview(60), await wasm.preview(60));
+  const [nativeCommit, wasmCommit] = await Promise.all([native.commit(60), wasm.commit(60)]);
+  if (nativeCommit !== wasmCommit) throw new Error("commit revision mismatch");
+  const [nativeReset, wasmReset] = await Promise.all([native.reset(), wasm.reset()]);
+  if (nativeReset !== wasmReset) throw new Error("reset revision mismatch");
+  for (const [name, candidate] of [["native", native], ["wasm", wasm]] as const) {
+    try {
+      await candidate.stale();
+    } catch {
+      continue;
+    }
+    throw new Error(`${name} stale probe unexpectedly succeeded`);
+  }
+}
+
 async function benchmarkCandidate(name: CandidateName, candidate: Candidate) {
   for (let warmup = 0; warmup < 3; warmup += 1) {
     await candidate.init();
@@ -261,8 +294,11 @@ async function benchmarkCandidate(name: CandidateName, candidate: Candidate) {
 async function runComparator() {
   const info = await invoke<{ bridge_owner: string }>("bridge_info");
   if (info.bridge_owner !== "native-tauri") throw new Error(`unexpected native owner: ${info.bridge_owner}`);
-  const native = await benchmarkCandidate("native-tauri", new NativeCandidate());
-  const wasm = await benchmarkCandidate("wasm-bindgen", await WasmCandidate.create());
+  const nativeCandidate = new NativeCandidate();
+  const wasmCandidate = await WasmCandidate.create();
+  await assertCandidateParity(nativeCandidate, wasmCandidate);
+  const native = await benchmarkCandidate("native-tauri", nativeCandidate);
+  const wasm = await benchmarkCandidate("wasm-bindgen", wasmCandidate);
   return { generated_at: new Date().toISOString(), method: "R3B five-run Windows WebView2 comparator", candidates: { native, wasm } };
 }
 

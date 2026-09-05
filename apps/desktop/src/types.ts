@@ -83,10 +83,6 @@ export function decodeScene(value: unknown): ScenePacket {
   return { revision, renderOrigin, primitiveCount, semanticIdCount, coordinateCount, payloadBytes, primitives };
 }
 
-export function sceneSignature(scene: ScenePacket): string {
-  return JSON.stringify(scene.primitives);
-}
-
 export function sceneBounds(scene: ScenePacket): [number, number, number, number] {
   const points = scene.primitives.flatMap((primitive) => primitive.vertices);
   if (points.length === 0) return [0, 0, 1, 1];

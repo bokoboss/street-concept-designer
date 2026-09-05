@@ -127,7 +127,11 @@ impl BridgeSession {
     }
 
     pub fn stale_probe(&self) -> Result<(), BridgeError> {
-        let transaction = self.preview_transaction(self.session.revision() as u32 + 1)?;
+        let current_revision = self.session.revision();
+        let stale_revision = current_revision
+            .checked_add(1)
+            .ok_or_else(|| BridgeError::new("cannot construct stale revision probe"))?;
+        let transaction = self.preview_transaction_at_revision(0, stale_revision)?;
         match self.session.preview(&transaction) {
             Err(SessionError::StaleRevision {
                 expected_revision,
@@ -141,12 +145,20 @@ impl BridgeSession {
     }
 
     fn preview_transaction(&self, sample: u32) -> Result<Transaction, BridgeError> {
+        self.preview_transaction_at_revision(sample, self.session.revision())
+    }
+
+    fn preview_transaction_at_revision(
+        &self,
+        sample: u32,
+        expected_revision: u64,
+    ) -> Result<Transaction, BridgeError> {
         let scenario_id = ScenarioId::new("scenario-preview")?;
         let road = preview_road(sample)?;
         let transaction_id = TransactionId::new(format!("r3b-preview-{sample}"))?;
         Ok(Transaction::new(
             transaction_id,
-            self.session.revision(),
+            expected_revision,
             "R3B preview road offset",
             vec![Command::ReplaceRoad { scenario_id, road }],
         )?)
@@ -341,7 +353,8 @@ mod tests {
         let preview = session.preview_scene(60).expect("preview");
         assert!(preview.len() > HEADER_BYTES);
         assert_eq!(session.revision(), before);
-        assert!(session.stale_probe().is_err());
+        let stale = session.stale_probe().expect_err("stale probe must fail");
+        assert!(stale.to_string().contains("controlled stale revision"));
         assert_eq!(session.commit(60).expect("commit"), 1);
         assert_eq!(session.reset().expect("reset"), 0);
     }

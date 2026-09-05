@@ -80,10 +80,12 @@ remains subject to the R3B evidence record and Windows acceptance gates.
 | `tauri-build` | 2.6.3 | Apache-2.0 OR MIT | Tauri build integration | `apps/desktop/Cargo.lock` / `cargo metadata` |
 | `wasm-bindgen` | 0.2.127 | MIT OR Apache-2.0 | selected WASM production owner | `apps/desktop/Cargo.lock` / `cargo metadata` |
 
-The complete transitive graphs are intentionally kept in the checked-in npm
-and Cargo lockfiles. The native core crates remain outside both application
-graphs; `cargo metadata --no-deps` confirms the root workspace contains only
-the accepted kernel/project packages.
+The complete transitive npm graph is kept in `apps/desktop/package-lock.json`.
+The complete application Cargo graph and every resolved crate license value are
+captured in `apps/desktop/CARGO_LICENSE_REPORT.md`, generated from the locked
+metadata by `apps/desktop/scripts/generate-cargo-license-report.mjs`. The native
+core crates remain outside both application graphs; `cargo metadata --no-deps`
+confirms the root workspace contains only the accepted kernel/project packages.
 
 ---
 
