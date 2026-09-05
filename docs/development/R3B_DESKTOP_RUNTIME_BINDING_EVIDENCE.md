@@ -21,9 +21,9 @@ The native Tauri candidate and WASM candidate use the same `bridge-common::Bridg
 Selection order result:
 
 1. Semantic correctness and single-owner integrity: tie; both use the same Rust `ProjectSession` implementation.
-2. UI responsiveness: WASM wins; drag-preview p95 is 0.3 ms versus 2.9 ms.
+2. UI responsiveness: WASM wins; drag-preview p95 is 0.3 ms versus 2.8 ms.
 3. Scene transfer: WASM wins at every measured S/M/L p95.
-4. Startup: WASM initialization p95 is 0.1 ms versus native 2.6 ms.
+4. Startup: WASM initialization p95 is 0.1 ms versus native 1.1 ms.
 5–6. WASM adds a browser artifact, but that lower-priority cost does not outweigh the measured responsiveness advantage.
 
 Decision register update: `docs/product/DECISION_REGISTER.md`.
@@ -34,10 +34,23 @@ Decision register update: `docs/product/DECISION_REGISTER.md`.
 - Same Tauri WebView2 page, same fixture, same operation sequence.
 - Warm-up: 3 runs per candidate.
 - Recorded: 5 runs per candidate.
+- Latest result generated at `2026-09-05T13:18:06.040Z`; the native owner assertion runs once outside timed initialization so both candidates measure reset-only initialization.
 - Scene sizes: S/M/L.
 - Drag probe: 120 previews per run at 60 Hz, five runs, concurrent `requestAnimationFrame` heartbeat.
 - Payload packet: 48-byte header, local f64 derivation, f32 conversion only at the wire/GPU boundary, scoped semantic IDs.
 - Fixture: current project-file schema v2, EPSG:32647 context, two-segment composite alignment, two traffic lanes, one shoulder, existing and alternative scenarios.
+
+### Operation latency evidence
+
+| Operation | Native p50/p95/p99/max (ms) | WASM p50/p95/p99/max (ms) |
+|---|---:|---:|
+| Initialization/reset | 1.1 / 1.1 / 1.1 / 1.1 | 0.1 / 0.1 / 0.1 / 0.1 |
+| Revision read | 1.0 / 1.3 / 1.3 / 1.3 | 0.0 / 0.1 / 0.1 / 0.1 |
+| Preview total | 1.6 / 1.8 / 1.8 / 1.8 | 0.1 / 0.2 / 0.2 / 0.2 |
+| Preview bridge | 1.6 / 1.7 / 1.7 / 1.7 | 0.1 / 0.2 / 0.2 / 0.2 |
+| Preview decode | 0.0 / 0.1 / 0.1 / 0.1 | 0.0 / 0.1 / 0.1 / 0.1 |
+| Commit + reset | 2.2 / 4.7 / 4.7 / 4.7 | 0.1 / 0.4 / 0.4 / 0.4 |
+| Controlled stale error | 1.1 / 1.8 / 1.8 / 1.8 | 0.0 / 0.3 / 0.3 / 0.3 |
 
 ### Scene transfer evidence
 
@@ -45,24 +58,24 @@ All sizes produce identical packet counts and byte sizes for both candidates.
 
 | Size | Bytes | Primitives | Scoped IDs | Coordinates | Total p50/p95/p99/max native (ms) | Total p50/p95/p99/max WASM (ms) |
 |---|---:|---:|---:|---:|---:|---:|
-| S | 4,622 | 49 | 4 | 418 | 1.1 / 1.6 / 1.6 / 1.6 | 0.1 / 0.2 / 0.2 / 0.2 |
-| M | 39,041 | 392 | 32 | 3,344 | 1.9 / 2.6 / 2.6 / 2.6 | 0.5 / 1.3 / 1.3 / 1.3 |
-| L | 317,039 | 3,136 | 256 | 26,752 | 7.1 / 11.6 / 11.6 / 11.6 | 3.1 / 4.9 / 4.9 / 4.9 |
+| S | 4,622 | 49 | 4 | 418 | 1.2 / 2.2 / 2.2 / 2.2 | 0.2 / 0.2 / 0.2 / 0.2 |
+| M | 39,041 | 392 | 32 | 3,344 | 2.0 / 2.4 / 2.4 / 2.4 | 0.4 / 1.3 / 1.3 / 1.3 |
+| L | 317,039 | 3,136 | 256 | 26,752 | 7.4 / 9.7 / 9.7 / 9.7 | 3.1 / 4.8 / 4.8 / 4.8 |
 
 Bridge/decode breakdown p95 (ms):
 
 | Size | Native bridge | Native decode | WASM bridge | WASM decode |
 |---|---:|---:|---:|---:|
-| S | 1.5 | 0.3 | 0.2 | 0.1 |
-| M | 2.4 | 0.4 | 1.0 | 0.3 |
-| L | 7.8 | 3.8 | 3.4 | 1.7 |
+| S | 2.0 | 0.2 | 0.2 | 0.1 |
+| M | 2.3 | 0.4 | 1.0 | 0.3 |
+| L | 6.2 | 3.5 | 3.4 | 1.7 |
 
 ### Drag and heartbeat evidence
 
 | Candidate | Aggregate p50/p95/p99/max (ms) | Requested | Completed | Failed | Superseded | Out-of-order | Max in-flight | rAF >33.3 ms | rAF >100 ms | Max rAF interval |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Native Tauri | 2.1 / 2.9 / 3.3 / 4.3 | 600 | 600 | 0 | 0 | 0 | 1 | 0 | 0 | 17.2 ms |
-| WASM | 0.2 / 0.3 / 0.5 / 0.6 | 600 | 600 | 0 | 0 | 0 | 1 | 0 | 0 | 17.0 ms |
+| Native Tauri | 2.0 / 2.8 / 3.3 / 3.9 | 600 | 600 | 0 | 0 | 0 | 1 | 0 | 0 | 17.0 ms |
+| WASM | 0.2 / 0.3 / 0.4 / 0.6 | 600 | 600 | 0 | 0 | 0 | 1 | 0 | 0 | 17.0 ms |
 
 Both paths are below the 33.3 ms p95 floor and show no repeatable heartbeat interval over 100 ms. WASM is approximately 90% lower on aggregate drag-preview p95.
 

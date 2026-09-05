@@ -19,8 +19,6 @@ interface Candidate {
 
 class NativeCandidate implements Candidate {
   async init() {
-    const info = await invoke<{ bridge_owner: string }>("bridge_info");
-    if (info.bridge_owner !== "native-tauri") throw new Error(`unexpected native owner: ${info.bridge_owner}`);
     await invoke("bridge_reset");
   }
   async revision() { return invoke<number>("bridge_revision"); }
@@ -261,6 +259,8 @@ async function benchmarkCandidate(name: CandidateName, candidate: Candidate) {
 }
 
 async function runComparator() {
+  const info = await invoke<{ bridge_owner: string }>("bridge_info");
+  if (info.bridge_owner !== "native-tauri") throw new Error(`unexpected native owner: ${info.bridge_owner}`);
   const native = await benchmarkCandidate("native-tauri", new NativeCandidate());
   const wasm = await benchmarkCandidate("wasm-bindgen", await WasmCandidate.create());
   return { generated_at: new Date().toISOString(), method: "R3B five-run Windows WebView2 comparator", candidates: { native, wasm } };
