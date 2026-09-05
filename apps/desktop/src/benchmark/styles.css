@@ -1,0 +1,7 @@
+body { margin: 0; color: #e2e8f0; background: #070b13; font-family: Consolas, "SFMono-Regular", monospace; }
+.benchmark-shell { padding: 28px; max-width: 1200px; margin: 0 auto; }
+h1 { font-family: "Segoe UI", sans-serif; }
+button { padding: 10px 16px; border: 1px solid #38bdf8; border-radius: 6px; color: #e0f2fe; background: #0c4a6e; cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+pre { white-space: pre-wrap; word-break: break-word; font-size: 11px; line-height: 1.45; }
+.error { color: #fecaca; }

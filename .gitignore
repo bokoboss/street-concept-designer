@@ -4,6 +4,14 @@ dist/
 build/
 coverage/
 .vite/
+apps/desktop/dist/
+apps/desktop/benchmark-dist/
+apps/desktop/benchmark-result.json
+apps/desktop/.tools/
+apps/desktop/src-tauri/gen/
+apps/desktop/src/benchmark/wasm/*.js
+apps/desktop/src/benchmark/wasm/*.wasm
+apps/desktop/src/benchmark/wasm/*.ts
 
 # Rust / Tauri
 target/

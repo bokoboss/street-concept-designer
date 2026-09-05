@@ -61,6 +61,30 @@ Adoption expectation:
 - include license-notice generation in release qualification where feasible;
 - do not rely on package homepage summaries instead of actual package/license metadata.
 
+## B1. R3B qualification graph (exact lockfile evidence)
+
+These are the exact direct application dependencies used by the R3B proof. They
+are adopted for this qualification packet; the production desktop decision
+remains subject to the R3B evidence record and Windows acceptance gates.
+
+| Dependency | Exact version | License in lock metadata | Role | Evidence |
+|---|---:|---|---|---|
+| `@tauri-apps/api` | 2.11.1 | Apache-2.0 OR MIT | native IPC client | `apps/desktop/package-lock.json` |
+| `@tauri-apps/cli` | 2.11.4 | Apache-2.0 OR MIT | project-local build CLI | `apps/desktop/package-lock.json` |
+| `pixi.js` | 8.20.1 | MIT | forced-WebGL 2D renderer | `apps/desktop/package-lock.json` |
+| `react` / `react-dom` | 19.2.8 | MIT | UI shell | `apps/desktop/package-lock.json` |
+| `vite` | 8.2.2 | MIT | static frontend build | `apps/desktop/package-lock.json` |
+| `@vitejs/plugin-react` | 6.1.1 | MIT | React Vite transform | `apps/desktop/package-lock.json` |
+| `typescript` | 7.0.2 | Apache-2.0 | frontend type checking | `apps/desktop/package-lock.json` |
+| `tauri` | 2.11.5 | Apache-2.0 OR MIT | Windows desktop shell/native owner candidate | `apps/desktop/Cargo.lock` / `cargo metadata` |
+| `tauri-build` | 2.6.3 | Apache-2.0 OR MIT | Tauri build integration | `apps/desktop/Cargo.lock` / `cargo metadata` |
+| `wasm-bindgen` | 0.2.127 | MIT OR Apache-2.0 | benchmark-only WASM owner candidate | `apps/desktop/Cargo.lock` / `cargo metadata` |
+
+The complete transitive graphs are intentionally kept in the checked-in npm
+and Cargo lockfiles. The native core crates remain outside both application
+graphs; `cargo metadata --no-deps` confirms the root workspace contains only
+the accepted kernel/project packages.
+
 ---
 
 # C. Geometry kernel candidates — Rust path

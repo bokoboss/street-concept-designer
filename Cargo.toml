@@ -11,6 +11,7 @@ members = [
     "crates/project-io",
     "crates/project-session",
 ]
+exclude = ["apps/desktop"]
 resolver = "2"
 
 [lib]

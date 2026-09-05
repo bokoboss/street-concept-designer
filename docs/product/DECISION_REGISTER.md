@@ -122,7 +122,7 @@ Statuses:
 | Local render origin before GPU float32 | LOCKED POLICY | large-coordinate stability |
 | PixiJS 2D | EVIDENCE_GATED/PREFERRED | R3 research supports adoption through the bounded R3B production prototype; exact version/license/transitives still require adoption evidence |
 | R3 desktop/frontend = Tauri 2 + React/TypeScript + Vite | EVIDENCE_GATED/PREFERRED | fits Windows-first offline static desktop architecture; R3B must qualify exact dependency pins and Windows runtime |
-| R3 semantic-session bridge = WASM vs native Tauri IPC | EVIDENCE_GATED / R3B REQUIRED | benchmark representative preview/scene transfer and choose exactly one authoritative ProjectSession owner |
+| R3 semantic-session bridge = WASM vs native Tauri IPC | SELECTED FOR R3B: WASM-owned ProjectSession | Five-run same-fixture WebView2 evidence selected WASM: drag-preview p95 0.3 ms vs native 2.9 ms; native remains benchmark-only and is not production-reachable |
 | Dual native + WASM semantic sessions | REJECTED | creates synchronization/stale-state risk and violates single semantic source-of-truth |
 | Three.js 3D | EVIDENCE_GATED/PREFERRED | strong candidate; production prototype must confirm |
 | WebGPU as mandatory 3D backend | EVIDENCE_GATED / NOT ASSUMED | Pascal prior art proves one viable environment only; Windows office-PC/WebView2 compatibility and fallback must be qualified |

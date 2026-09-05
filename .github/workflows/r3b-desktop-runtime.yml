@@ -1,0 +1,139 @@
+name: R3B Desktop Runtime Binding Qualification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-r3b-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain and WASM target
+        shell: bash
+        run: |
+          rustup toolchain install 1.98.0-x86_64-unknown-linux-gnu --profile minimal --component rustfmt --component clippy --target wasm32-unknown-unknown
+
+      - name: Show toolchain
+        run: |
+          rustc -vV
+          cargo -V
+          node --version
+          npm --version
+
+      - name: Check inherited Rust formatting
+        run: cargo +1.98.0-x86_64-unknown-linux-gnu fmt --all -- --check
+
+      - name: Run inherited Rust lint and tests
+        run: |
+          cargo +1.98.0-x86_64-unknown-linux-gnu clippy --locked --workspace --all-targets --all-features -- -D warnings
+          cargo +1.98.0-x86_64-unknown-linux-gnu test --locked --workspace --all-targets --all-features -- --nocapture
+
+      - name: Install desktop frontend dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Check desktop TypeScript and static build
+        working-directory: apps/desktop
+        run: |
+          npm run typecheck
+          npm run build
+
+      - name: Check bridge workspace formatting, tests, and WASM target
+        run: |
+          cargo +1.98.0-x86_64-unknown-linux-gnu fmt --all --manifest-path apps/desktop/Cargo.toml -- --check
+          cargo +1.98.0-x86_64-unknown-linux-gnu test --locked --manifest-path apps/desktop/Cargo.toml --workspace --all-targets -- --nocapture
+          cargo +1.98.0-x86_64-unknown-linux-gnu build --locked --manifest-path apps/desktop/bridge-wasm/Cargo.toml --target wasm32-unknown-unknown --release
+
+  qualify-r3b-windows-msvc:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install pinned MSVC Rust toolchain and WASM target
+        shell: pwsh
+        run: rustup toolchain install 1.98.0-x86_64-pc-windows-msvc --profile minimal --component rustfmt --component clippy --target wasm32-unknown-unknown
+
+      - name: Show Windows/MSVC toolchain
+        shell: pwsh
+        run: |
+          rustup run 1.98.0-x86_64-pc-windows-msvc rustc -vV
+          rustup run 1.98.0-x86_64-pc-windows-msvc cargo -V
+          node --version
+          npm --version
+
+      - name: Install desktop frontend dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Check desktop TypeScript and static build
+        working-directory: apps/desktop
+        run: |
+          npm run typecheck
+          npm run build
+
+      - name: Check bridge workspace formatting
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc fmt --all --manifest-path apps/desktop/Cargo.toml -- --check
+
+      - name: Run bridge workspace tests
+        shell: pwsh
+        run: cargo +1.98.0-x86_64-pc-windows-msvc test --locked --manifest-path apps/desktop/Cargo.toml --workspace --all-targets -- --nocapture
+
+      - name: Check and build native desktop runtime with MSVC
+        shell: pwsh
+        run: |
+          cargo +1.98.0-x86_64-pc-windows-msvc check --locked --manifest-path apps/desktop/Cargo.toml --all-targets
+          cargo +1.98.0-x86_64-pc-windows-msvc build --locked --manifest-path apps/desktop/Cargo.toml --release
+
+      - name: Build static Tauri runtime without installer bundling
+        working-directory: apps/desktop
+        run: npm run tauri -- build --no-bundle
+
+      - name: Launch built desktop runtime
+        shell: pwsh
+        run: |
+          $exe = Join-Path $env:GITHUB_WORKSPACE "apps/desktop/target/release/street-concept-designer-desktop.exe"
+          if (-not (Test-Path -LiteralPath $exe)) { throw "Built runtime not found: $exe" }
+          $process = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 8
+          if ($process.HasExited) { throw "Built runtime exited during launch: $($process.ExitCode)" }
+          Stop-Process -Id $process.Id -Force
+
+      - name: Build benchmark frontend
+        working-directory: apps/desktop
+        run: npm run benchmark:build
+
+      - name: Build benchmark runtime with native comparator feature
+        working-directory: apps/desktop
+        shell: pwsh
+        run: npm run tauri -- build --no-bundle --features native-benchmark --config src-tauri/tauri.benchmark.conf.json
+
+      - name: Run native versus WASM WebView2 comparator
+        working-directory: apps/desktop
+        shell: pwsh
+        run: node scripts/run-tauri-benchmark.mjs
+
+      - name: Upload R3B benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r3b-webview2-benchmark
+          path: apps/desktop/benchmark-result.json
+          if-no-files-found: ignore
