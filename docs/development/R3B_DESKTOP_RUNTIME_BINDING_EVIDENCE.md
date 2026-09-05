@@ -1,12 +1,13 @@
 # R3B Desktop Runtime Binding Evidence
 
-Status: implementation evidence captured on 2026-09-05; hosted MSVC CI and independent review are required before final acceptance.
+Status: implementation evidence captured on 2026-09-05; local proof is complete, hosted G10/G12 qualification is externally blocked by GitHub billing enforcement, and G14 is PASS WITH CONDITIONS.
 
 ## Baseline and scope
 
 - Repository: `https://github.com/bokoboss/street-concept-designer`
 - Execution branch: `codex/r3b-desktop-runtime-binding-2d`
 - Accepted base: `784a44663039898424c6ef39f0b98b003ffa734a`
+- Implementation head under review: `b8038c3` (`Correct R3B comparator fairness evidence`)
 - Scope: R3B desktop runtime, native/WASM bridge comparison, and 2D derived-scene proof only.
 - R3C remains blocked and was not implemented.
 
@@ -115,11 +116,17 @@ Both paths are below the 33.3 ms p95 floor and show no repeatable heartbeat inte
 | G7 | PASS | Local-origin packet, scoped semantic-ID decode, and runtime lane selection proof. |
 | G8 | PASS | Destroy/rebuild runtime action returned `equivalent`; scene-signature check is deterministic. |
 | G9 | PASS | Static frontend, capability, CSP, and feature isolation. |
-| G10 | PENDING | Local GNU build/launch passed; required Windows/MSVC build/launch is delegated to the PR workflow. |
+| G10 | BLOCKED — external | Local GNU build/launch passed; final-head hosted run [33968727347](https://github.com/bokoboss/street-concept-designer/actions/runs/33968727347) did not start its Windows/MSVC job because GitHub reported an account billing/spending-limit failure. |
 | G11 | PASS | Inherited root formatting, clippy, tests, benches, and wasm32 build passed locally. |
-| G12 | PENDING | Reproducible clean Linux/Windows CI workflow is committed; hosted run is required. |
+| G12 | BLOCKED — external | Reproducible clean Linux/Windows CI workflow is committed; final-head hosted run [33968727347](https://github.com/bokoboss/street-concept-designer/actions/runs/33968727347) was rejected before `npm ci` or any build step for the same billing/spending-limit failure. |
 | G13 | PASS | This evidence record, dependency register, and decision-register update. |
-| G14 | PENDING | Independent review is required after the implementation PR exists. |
+| G14 | PASS WITH CONDITIONS | Fresh-context review after PR creation found no architecture, scope, comparator, renderer, security, or dependency finding. Condition: hosted final-head G10/G12 must run green before acceptance. |
+
+### Hosted qualification status
+
+- Final-head R3B workflow [33968727347](https://github.com/bokoboss/street-concept-designer/actions/runs/33968727347) was triggered for `b8038c3`; both Linux and Windows jobs were not started because GitHub reported: “recent account payments have failed or your spending limit needs to be increased.”
+- A supported rerun of the earlier R3B workflow produced the same pre-start failure. The inherited R1A workflow [33968727299](https://github.com/bokoboss/street-concept-designer/actions/runs/33968727299) was also rejected before job startup for the same external reason.
+- No hosted job-step, MSVC artifact, or CI benchmark result exists to claim. This is an account/control-plane blocker, not an implementation or architecture result.
 
 ## Local verification
 
@@ -134,11 +141,15 @@ Passed locally:
 - real Windows WebView2 comparator shown above;
 - production WebView2 selection and renderer-cache rebuild smoke.
 
-The local environment has no `link.exe`/`cl.exe`; therefore the local GNU result is not substituted for G10. The committed workflow is the authoritative MSVC qualification path.
+The local environment has no `link.exe`/`cl.exe`; therefore the local GNU result is not substituted for G10. The committed workflow is the authoritative MSVC qualification path, but its final-head run is currently blocked before startup by GitHub billing enforcement.
 The local GNU feature-gated Tauri test link also hit MinGW's `export ordinal too large` limitation; the bridge-common tests, both clippy variants, optimized runtime builds, and the hosted MSVC test/build path remain the relevant evidence.
 
 ## Known limitations
 
 - This is a bounded R3B proof fixture, not survey-accurate engineering design or standards compliance.
 - Windows packaging, signing, updater, fixed WebView2 runtime, and portable distribution remain out of scope.
-- Final G10/G12/G14 closure depends on hosted MSVC CI and independent review of the pushed PR.
+- Final G10/G12 closure depends on hosted MSVC CI becoming runnable and green. G14 is reviewed with the stated condition; no R3C work has started.
+
+## Current recommendation
+
+`REMEDIATE_R3B` — unblock the GitHub Actions account billing/spending limit, rerun the final-head workflow, and complete G10/G12 before acceptance. No architecture escalation is indicated, and R3C remains blocked.
