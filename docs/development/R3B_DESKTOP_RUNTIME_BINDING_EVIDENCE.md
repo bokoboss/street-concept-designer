@@ -7,7 +7,7 @@ Status: implementation evidence captured on 2026-09-05; local proof is complete,
 - Repository: `https://github.com/bokoboss/street-concept-designer`
 - Execution branch: `codex/r3b-desktop-runtime-binding-2d`
 - Accepted base: `784a44663039898424c6ef39f0b98b003ffa734a`
-- Implementation head under review: `b8038c3` (`Correct R3B comparator fairness evidence`)
+- Implementation head under review: `4014fda` (`Close R3B review findings`)
 - Scope: R3B desktop runtime, native/WASM bridge comparison, and 2D derived-scene proof only.
 - R3C remains blocked and was not implemented.
 
@@ -17,14 +17,14 @@ The root Rust workspace remains unchanged as an application-independent kernel. 
 
 Selected owner: **WASM-owned `ProjectSession` via `wasm-bindgen`**.
 
-The native Tauri candidate and WASM candidate use the same `bridge-common::BridgeSession`, the same current-schema fixture, and the same operation set. The measured semantic result is equivalent. Both paths meet the responsiveness floor, while the WASM path is materially faster on the critical drag-preview p95. The production Tauri build has no `bridge-common` dependency or native session state; the native candidate is behind the `native-benchmark` Cargo feature and is reachable only by the comparator build.
+The native Tauri candidate and WASM candidate use the same `bridge-common::BridgeSession`, the same current-schema fixture, and the same operation set. The comparator now asserts exact packet-byte/decoded-semantic parity for S/M/L scenes and preview, equal commit/reset revisions, and rejection of both stale probes before recording timings. The measured semantic result is equivalent. Both paths meet the responsiveness floor, while the WASM path is materially faster on the critical drag-preview p95. The production Tauri build has no `bridge-common` dependency or native session state; the native candidate is behind the `native-benchmark` Cargo feature and is reachable only by the comparator build.
 
 Selection order result:
 
 1. Semantic correctness and single-owner integrity: tie; both use the same Rust `ProjectSession` implementation.
 2. UI responsiveness: WASM wins; drag-preview p95 is 0.3 ms versus 2.8 ms.
 3. Scene transfer: WASM wins at every measured S/M/L p95.
-4. Startup: WASM initialization p95 is 0.1 ms versus native 1.1 ms.
+4. Startup: WASM initialization p95 is 0.1 ms versus native 1.5 ms.
 5–6. WASM adds a browser artifact, but that lower-priority cost does not outweigh the measured responsiveness advantage.
 
 Decision register update: `docs/product/DECISION_REGISTER.md`.
@@ -35,7 +35,7 @@ Decision register update: `docs/product/DECISION_REGISTER.md`.
 - Same Tauri WebView2 page, same fixture, same operation sequence.
 - Warm-up: 3 runs per candidate.
 - Recorded: 5 runs per candidate.
-- Latest result generated at `2026-09-05T13:18:06.040Z`; the native owner assertion runs once outside timed initialization so both candidates measure reset-only initialization.
+- Latest result generated at `2026-09-05T13:45:59.747Z`; the native owner assertion runs once outside timed initialization so both candidates measure reset-only initialization.
 - Scene sizes: S/M/L.
 - Drag probe: 120 previews per run at 60 Hz, five runs, concurrent `requestAnimationFrame` heartbeat.
 - Payload packet: 48-byte header, local f64 derivation, f32 conversion only at the wire/GPU boundary, scoped semantic IDs.
@@ -45,13 +45,13 @@ Decision register update: `docs/product/DECISION_REGISTER.md`.
 
 | Operation | Native p50/p95/p99/max (ms) | WASM p50/p95/p99/max (ms) |
 |---|---:|---:|
-| Initialization/reset | 1.1 / 1.1 / 1.1 / 1.1 | 0.1 / 0.1 / 0.1 / 0.1 |
-| Revision read | 1.0 / 1.3 / 1.3 / 1.3 | 0.0 / 0.1 / 0.1 / 0.1 |
-| Preview total | 1.6 / 1.8 / 1.8 / 1.8 | 0.1 / 0.2 / 0.2 / 0.2 |
-| Preview bridge | 1.6 / 1.7 / 1.7 / 1.7 | 0.1 / 0.2 / 0.2 / 0.2 |
-| Preview decode | 0.0 / 0.1 / 0.1 / 0.1 | 0.0 / 0.1 / 0.1 / 0.1 |
-| Commit + reset | 2.2 / 4.7 / 4.7 / 4.7 | 0.1 / 0.4 / 0.4 / 0.4 |
-| Controlled stale error | 1.1 / 1.8 / 1.8 / 1.8 | 0.0 / 0.3 / 0.3 / 0.3 |
+| Initialization/reset | 1.1 / 1.5 / 1.5 / 1.5 | 0.1 / 0.1 / 0.1 / 0.1 |
+| Revision read | 1.1 / 1.3 / 1.3 / 1.3 | 0.0 / 0.0 / 0.0 / 0.0 |
+| Preview total | 1.7 / 2.1 / 2.1 / 2.1 | 0.1 / 0.2 / 0.2 / 0.2 |
+| Preview bridge | 1.6 / 2.1 / 2.1 / 2.1 | 0.1 / 0.2 / 0.2 / 0.2 |
+| Preview decode | 0.0 / 0.1 / 0.1 / 0.1 | 0.0 / 0.0 / 0.0 / 0.0 |
+| Commit + reset | 2.6 / 2.7 / 2.7 / 2.7 | 0.1 / 0.1 / 0.1 / 0.1 |
+| Controlled stale error | 1.1 / 1.3 / 1.3 / 1.3 | 0.0 / 0.1 / 0.1 / 0.1 |
 
 ### Scene transfer evidence
 
@@ -59,26 +59,26 @@ All sizes produce identical packet counts and byte sizes for both candidates.
 
 | Size | Bytes | Primitives | Scoped IDs | Coordinates | Total p50/p95/p99/max native (ms) | Total p50/p95/p99/max WASM (ms) |
 |---|---:|---:|---:|---:|---:|---:|
-| S | 4,622 | 49 | 4 | 418 | 1.2 / 2.2 / 2.2 / 2.2 | 0.2 / 0.2 / 0.2 / 0.2 |
-| M | 39,041 | 392 | 32 | 3,344 | 2.0 / 2.4 / 2.4 / 2.4 | 0.4 / 1.3 / 1.3 / 1.3 |
-| L | 317,039 | 3,136 | 256 | 26,752 | 7.4 / 9.7 / 9.7 / 9.7 | 3.1 / 4.8 / 4.8 / 4.8 |
+| S | 4,622 | 49 | 4 | 418 | 1.3 / 1.6 / 1.6 / 1.6 | 0.1 / 0.2 / 0.2 / 0.2 |
+| M | 39,041 | 392 | 32 | 3,344 | 2.2 / 2.3 / 2.3 / 2.3 | 0.4 / 0.5 / 0.5 / 0.5 |
+| L | 317,039 | 3,136 | 256 | 26,752 | 8.0 / 9.6 / 9.6 / 9.6 | 2.6 / 3.7 / 3.7 / 3.7 |
 
 Bridge/decode breakdown p95 (ms):
 
 | Size | Native bridge | Native decode | WASM bridge | WASM decode |
 |---|---:|---:|---:|---:|
-| S | 2.0 | 0.2 | 0.2 | 0.1 |
-| M | 2.3 | 0.4 | 1.0 | 0.3 |
-| L | 6.2 | 3.5 | 3.4 | 1.7 |
+| S | 1.5 | 0.1 | 0.2 | 0.0 |
+| M | 2.3 | 0.2 | 0.3 | 0.2 |
+| L | 8.4 | 1.4 | 2.0 | 1.7 |
 
 ### Drag and heartbeat evidence
 
 | Candidate | Aggregate p50/p95/p99/max (ms) | Requested | Completed | Failed | Superseded | Out-of-order | Max in-flight | rAF >33.3 ms | rAF >100 ms | Max rAF interval |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Native Tauri | 2.0 / 2.8 / 3.3 / 3.9 | 600 | 600 | 0 | 0 | 0 | 1 | 0 | 0 | 17.0 ms |
-| WASM | 0.2 / 0.3 / 0.4 / 0.6 | 600 | 600 | 0 | 0 | 0 | 1 | 0 | 0 | 17.0 ms |
+| Native Tauri | 2.1 / 2.8 / 3.7 / 3.9 | 600 | 600 | 0 | 0 | 0 | 1 | 0 | 0 | 17.3 ms |
+| WASM | 0.2 / 0.5 / 0.6 / 0.8 | 600 | 600 | 0 | 0 | 0 | 1 | 0 | 0 | 17.0 ms |
 
-Both paths are below the 33.3 ms p95 floor and show no repeatable heartbeat interval over 100 ms. WASM is approximately 90% lower on aggregate drag-preview p95.
+Both paths are below the 33.3 ms p95 floor and show no repeatable heartbeat interval over 100 ms. WASM is approximately 82% lower on aggregate drag-preview p95.
 
 ## Runtime and renderer proof
 
@@ -89,7 +89,7 @@ Both paths are below the 33.3 ms p95 floor and show no repeatable heartbeat inte
 - Renderer consumes decoded derived primitives only.
 - Pointer selection uses the preserved scoped semantic ID; selected geometry is highlighted and displayed.
 - Local render origin is carried in the packet and applied before f32 vertex conversion.
-- Renderer children are destroyed and rebuilt; scene signatures are compared before/after rebuild.
+- Renderer children are destroyed and rebuilt; signatures derived from the newly-created Pixi children (scoped labels and local geometry bounds) are compared before/after rebuild.
 - The production Vite output contains only `index.html` plus the selected WASM runtime. Comparator output is isolated to `benchmark-dist`.
 - Local production WebView2 smoke verified `WebGL forced`, `wasm-bindgen`, the 49-primitive scene, a selected scoped lane id (`scenario-preview/road/R3B-road/component/lane-right`), and `Cache rebuild = equivalent` after the destroy/rebuild action.
 
@@ -100,7 +100,7 @@ Both paths are below the 33.3 ms p95 floor and show no repeatable heartbeat inte
 - CSP keeps `default-src`, `connect-src`, image, style, object, base URI, and frame ancestor restrictions bounded to the proof. `'wasm-unsafe-eval'` is present because the selected WASM owner must compile its module in WebView2.
 - Pixi's `pixi.js/unsafe-eval` static polyfill is imported so Pixi WebGL works without enabling the broader `'unsafe-eval'` CSP source.
 - Capabilities contain only `core:default` for the main window.
-- Exact dependency/license evidence is recorded in `docs/development/DEPENDENCY_LICENSE_REGISTER.md` and the checked-in npm/Cargo lockfiles.
+- Exact dependency/license evidence is recorded in `docs/development/DEPENDENCY_LICENSE_REGISTER.md`, `apps/desktop/CARGO_LICENSE_REPORT.md`, and the checked-in npm/Cargo lockfiles.
 
 ## Gate status at evidence capture
 
@@ -116,15 +116,15 @@ Both paths are below the 33.3 ms p95 floor and show no repeatable heartbeat inte
 | G7 | PASS | Local-origin packet, scoped semantic-ID decode, and runtime lane selection proof. |
 | G8 | PASS | Destroy/rebuild runtime action returned `equivalent`; scene-signature check is deterministic. |
 | G9 | PASS | Static frontend, capability, CSP, and feature isolation. |
-| G10 | BLOCKED — external | Local GNU build/launch passed; final-head hosted run [33968727347](https://github.com/bokoboss/street-concept-designer/actions/runs/33968727347) did not start its Windows/MSVC job because GitHub reported an account billing/spending-limit failure. |
+| G10 | BLOCKED — external | Local GNU build/launch passed; implementation-head hosted run [33970822285](https://github.com/bokoboss/street-concept-designer/actions/runs/33970822285) did not start its Windows/MSVC job because GitHub reported an account billing/spending-limit failure. |
 | G11 | PASS | Inherited root formatting, clippy, tests, benches, and wasm32 build passed locally. |
-| G12 | BLOCKED — external | Reproducible clean Linux/Windows CI workflow is committed; final-head hosted run [33968727347](https://github.com/bokoboss/street-concept-designer/actions/runs/33968727347) was rejected before `npm ci` or any build step for the same billing/spending-limit failure. |
+| G12 | BLOCKED — external | Reproducible clean Linux/Windows CI workflow is committed; implementation-head hosted run [33970822285](https://github.com/bokoboss/street-concept-designer/actions/runs/33970822285) was rejected before `npm ci` or any build step for the same billing/spending-limit failure. |
 | G13 | PASS | This evidence record, dependency register, and decision-register update. |
-| G14 | PASS WITH CONDITIONS | Fresh-context review after PR creation found no architecture, scope, comparator, renderer, security, or dependency finding. Condition: hosted final-head G10/G12 must run green before acceptance. |
+| G14 | PASS WITH CONDITIONS | Fresh-context review and independent PR review findings were addressed in `4014fda`; no unresolved architecture, scope, comparator, renderer, security, or dependency finding remains. Condition: hosted implementation-head G10/G12 must run green before acceptance. |
 
 ### Hosted qualification status
 
-- Final-head R3B workflow [33968727347](https://github.com/bokoboss/street-concept-designer/actions/runs/33968727347) was triggered for `b8038c3`; both Linux and Windows jobs were not started because GitHub reported: “recent account payments have failed or your spending limit needs to be increased.”
+- Implementation-head R3B workflow [33970822285](https://github.com/bokoboss/street-concept-designer/actions/runs/33970822285) was triggered for `4014fda`; both Linux and Windows jobs were not started because GitHub reported: “recent account payments have failed or your spending limit needs to be increased.”
 - A supported rerun of the earlier R3B workflow produced the same pre-start failure. The inherited R1A workflow [33968727299](https://github.com/bokoboss/street-concept-designer/actions/runs/33968727299) was also rejected before job startup for the same external reason.
 - No hosted job-step, MSVC artifact, or CI benchmark result exists to claim. This is an account/control-plane blocker, not an implementation or architecture result.
 
