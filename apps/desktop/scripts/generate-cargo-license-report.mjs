@@ -67,7 +67,6 @@ const lines = [
   "| Depth | Reachability | Package | Version | License / policy | Source |",
   "|---:|---|---|---|---|---|",
   ...rows.map((row) => `| ${row.depth} | ${row.direct} | ${escapeCell(row.name)} | ${escapeCell(row.version)} | ${escapeCell(row.license)} | ${escapeCell(row.source)} |`),
-  "",
 ];
 
 writeFileSync(resolve(desktop, "CARGO_LICENSE_REPORT.md"), `${lines.join("\n")}\n`);

@@ -433,4 +433,3 @@
 | 7 | transitive | zerovec-derive | 0.11.6 | Unicode-3.0 | registry+https://github.com/rust-lang/crates.io-index |
 | 5 | transitive | zlib-rs | 0.6.7 | Zlib | registry+https://github.com/rust-lang/crates.io-index |
 | 3 | transitive | zmij | 1.0.23 | MIT | registry+https://github.com/rust-lang/crates.io-index |
-
